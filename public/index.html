@@ -1,0 +1,1538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#060614">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230a0a1a'/%3E%3Ccircle cx='16' cy='16' r='10' fill='none' stroke='%2300f0ff' stroke-width='2'/%3E%3Cpath d='M16 8 L16 16 L22 16' fill='none' stroke='%23ff00aa' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
+  <title>Apple Health Dashboard</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--bg:#060614;--bg2:#0c0c24;--bg3:#141432;--card:#161638;--card2:#1c1c44;--text:#e8e8f8;--dim:#7878a0;--cyan:#00e8ff;--mag:#ff00aa;--green:#00ff88;--amber:#ffaa00;--red:#ff4466;--purple:#aa66ff;--blue:#4488ff;--teal:#00ccaa;--glass:rgba(255,255,255,.03);--glow-cyan:0 0 20px rgba(0,232,255,.15);--glow-mag:0 0 20px rgba(255,0,170,.15);--glow-green:0 0 20px rgba(0,255,136,.15)}
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5}
+    html{scroll-padding-top:3.5rem;scroll-behavior:smooth}
+
+    /* ─── Header ─── */
+    .hero{text-align:center;padding:2.5rem 1rem 1.5rem;background:linear-gradient(180deg,#0a0a2a 0%,var(--bg) 100%);position:relative;overflow:hidden}
+    .hero::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:70%;height:1px;background:linear-gradient(90deg,transparent,var(--cyan),var(--mag),transparent)}
+    .hero::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent 10%,rgba(0,232,255,.1) 50%,transparent 90%)}
+    .hero svg{max-width:500px;width:100%;height:auto}
+    .hero-sub{display:flex;align-items:center;justify-content:center;gap:1.5rem;margin-top:.5rem;flex-wrap:wrap}
+    .hero-pill{display:inline-flex;align-items:center;gap:.4rem;padding:.25rem .8rem;border-radius:20px;font-size:.65rem;font-weight:500;border:1px solid rgba(255,255,255,.08);color:var(--dim)}
+    .hero-pill .dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+    .upd{color:var(--dim);font-size:.6rem;margin-top:.4rem}
+
+    /* ─── Nav ─── */
+    .tabs{display:flex;justify-content:center;gap:.4rem;padding:.7rem;background:var(--bg2);border-bottom:1px solid rgba(255,255,255,.04);position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
+    .tab{padding:.4rem .9rem;border-radius:6px;font-size:.72rem;font-weight:600;color:var(--dim);border:1px solid transparent;cursor:pointer;transition:all .3s;background:none;font-family:'Space Grotesk',sans-serif;letter-spacing:.03em;min-height:36px;display:flex;align-items:center}
+    .tab.active{border-color:var(--cyan);color:var(--cyan);background:rgba(0,232,255,.06);box-shadow:var(--glow-cyan)}
+    .tab:hover:not(.active){color:var(--text);background:var(--glass)}
+
+    main{max-width:1140px;margin:0 auto;padding:1rem}
+
+    /* ─── Section Headers ─── */
+    .sh{display:flex;align-items:center;gap:.6rem;margin:1.8rem 0 .8rem;padding-bottom:.5rem;border-bottom:1px solid rgba(255,255,255,.06)}
+    .sh-icon{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.9rem}
+    .sh-text{font-family:'Space Grotesk',sans-serif;font-size:.85rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+    .sh-line{flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,.08),transparent)}
+    .sh-badge{font-size:.55rem;padding:.15rem .5rem;border-radius:10px;font-weight:600;border:1px solid rgba(255,255,255,.1)}
+
+    /* ─── Cards ─── */
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.7rem}
+    .mc{background:linear-gradient(135deg,var(--card),var(--card2));border:1px solid rgba(255,255,255,.05);border-radius:10px;padding:.9rem;text-align:center;transition:all .3s;position:relative;overflow:hidden}
+    .mc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:10px 10px 0 0}
+    .mc:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+    .mc .ic{font-size:1.2rem;margin-bottom:.3rem;opacity:.7}
+    .mc .lb{font-size:.6rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:.2rem;font-family:'Space Grotesk',sans-serif}
+    .mc .vl{font-size:1.9rem;font-weight:800;line-height:1;font-family:'Space Grotesk',sans-serif}
+    .mc .ut{font-size:.6rem;color:var(--dim);margin-top:.15rem;font-weight:500}
+
+    /* ─── Activity Rings ─── */
+    .rings{display:flex;justify-content:center;gap:2rem;margin:1rem 0;flex-wrap:wrap}
+    .ring-wrap{text-align:center}
+    .ring-wrap svg{width:100px;height:100px}
+    .ring-label{font-size:.6rem;color:var(--dim);margin-top:.3rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em}
+    .ring-val{font-size:1.1rem;font-weight:800;font-family:'Space Grotesk',sans-serif}
+
+    /* ─── HR Section ─── */
+    .hr-row{display:grid;grid-template-columns:220px 1fr;gap:1rem;align-items:start}
+    .hr-big{background:linear-gradient(135deg,var(--card),#1a1040);border:1px solid rgba(255,68,102,.15);border-radius:10px;padding:1.2rem;text-align:center;position:relative;overflow:hidden}
+    .hr-big::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--red),var(--mag))}
+    .hr-big .bpm{font-size:3.5rem;font-weight:900;color:var(--red);font-family:'Space Grotesk',sans-serif;line-height:1}
+    .hr-big .bl{font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);font-weight:600;margin-bottom:.3rem}
+    .hr-sm{display:flex;gap:.5rem;margin-top:.7rem}
+    .hr-sm .c{flex:1;background:var(--card);border:1px solid rgba(255,255,255,.05);border-radius:6px;padding:.5rem;text-align:center}
+    .hr-sm .c .cv{font-size:1.2rem;font-weight:700;font-family:'Space Grotesk',sans-serif}
+    .hr-sm .c .cl{font-size:.5rem;text-transform:uppercase;color:var(--dim);font-weight:600;letter-spacing:.08em}
+    .hr-chart{background:linear-gradient(135deg,var(--card),var(--card2));border:1px solid rgba(255,255,255,.05);border-radius:10px;padding:1rem}
+    .hr-chart svg{width:100%;height:120px;cursor:crosshair}
+
+    /* ─── Workout Cards ─── */
+    .wg{display:grid;grid-template-columns:repeat(2,1fr);gap:.7rem}
+    .wc{background:linear-gradient(135deg,var(--card),#1c1040);border:1px solid rgba(255,0,170,.1);border-radius:10px;padding:.9rem;transition:all .3s;position:relative;overflow:hidden}
+    .wc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--mag),var(--purple))}
+    .wc:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(255,0,170,.1)}
+    .wc .wn{font-size:.85rem;font-weight:700;color:var(--mag);font-family:'Space Grotesk',sans-serif}
+    .wc .wd{font-size:.6rem;color:var(--dim);margin-bottom:.5rem}
+    .wc .ws{display:grid;grid-template-columns:repeat(4,1fr);gap:.3rem}
+    .wc .ws2{display:grid;grid-template-columns:repeat(4,1fr);gap:.3rem;margin-top:.4rem;padding-top:.4rem;border-top:1px solid rgba(255,255,255,.04)}
+    .wc .ws div,.wc .ws2 div{text-align:center}
+    .wc .wv{font-size:1rem;font-weight:700;font-family:'Space Grotesk',sans-serif}
+    .wc .wl{font-size:.5rem;text-transform:uppercase;color:var(--dim);font-weight:600;letter-spacing:.05em}
+
+    /* ─── Sleep Cards ─── */
+    .slc{background:linear-gradient(135deg,var(--card),#101840);border:1px solid rgba(0,232,255,.1);border-radius:10px;padding:.9rem;position:relative;overflow:hidden}
+    .slc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--cyan),var(--blue))}
+    .slc .sbar{display:flex;height:8px;border-radius:4px;overflow:hidden;margin:.5rem 0;gap:1px}
+    .slc .sbar div{height:100%}
+
+    /* ─── Trend Charts ─── */
+    .tc{background:linear-gradient(135deg,var(--card),var(--card2));border:1px solid rgba(255,255,255,.04);border-radius:10px;padding:1rem;margin-bottom:.7rem;position:relative}
+    .tc svg{width:100%;height:60px;cursor:crosshair}
+    .tc .tl{font-size:.65rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;font-weight:600;font-family:'Space Grotesk',sans-serif}
+    .tc .tr{display:flex;justify-content:space-between;align-items:center;margin-top:.3rem}
+    .tc .tv{font-size:.8rem;font-weight:700;font-family:'Space Grotesk',sans-serif}
+    .tc .td{font-size:.65rem;font-weight:600}
+    .tc .ti{font-size:.55rem;color:var(--dim)}
+
+    /* ─── Calendar ─── */
+    .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+    .cal-h{font-size:.6rem;color:var(--dim);text-align:center;padding:.3rem;font-weight:600}
+    .cal-d{background:var(--card);border:1px solid rgba(255,255,255,.03);border-radius:5px;padding:.4rem;text-align:center;min-height:60px;font-size:.6rem;cursor:pointer;transition:all .2s}
+    .cal-d:hover{border-color:var(--cyan);transform:scale(1.02)}.cal-d.active{border-color:var(--cyan);box-shadow:var(--glow-cyan)}
+    .cal-d .dn{font-weight:700;color:var(--dim);font-size:.7rem;margin-bottom:.15rem}.cal-d.empty{background:transparent;border-color:transparent}
+    .cal-nav{display:flex;justify-content:center;gap:1rem;align-items:center;margin-bottom:.8rem}
+    .cal-nav button{background:var(--card);border:1px solid rgba(255,255,255,.1);color:var(--dim);padding:.3rem .7rem;border-radius:5px;cursor:pointer;font-family:inherit;font-size:.7rem;transition:all .2s}
+    .cal-nav button:hover{border-color:var(--cyan);color:var(--cyan)}
+    .cal-nav .cm{font-size:1.1rem;font-weight:700;font-family:'Space Grotesk',sans-serif}
+
+    /* ─── Day Detail ─── */
+    .dd{background:var(--bg3);border:1px solid rgba(0,232,255,.15);border-radius:10px;padding:1.2rem;margin-top:1rem;display:none}
+    .dd.show{display:block}.dd h3{color:var(--cyan);font-size:.9rem;font-family:'Space Grotesk',sans-serif;margin-bottom:.8rem}
+
+    /* ─── Workout Table ─── */
+    .wt{width:100%;border-collapse:collapse;font-size:.75rem}
+    .wt th{text-align:left;color:var(--dim);font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;padding:.5rem;border-bottom:1px solid rgba(255,255,255,.1);font-family:'Space Grotesk',sans-serif}
+    .wt td{padding:.5rem;border-bottom:1px solid rgba(255,255,255,.03)}
+    .wt tr:hover td{background:rgba(0,232,255,.02)}
+
+    /* ─── Insights ─── */
+    .ins{background:linear-gradient(135deg,var(--card),#1a1050);border:1px solid rgba(170,102,255,.15);border-radius:10px;padding:.8rem 1rem;font-size:.75rem;line-height:1.6;margin-bottom:.5rem}
+
+    /* Recovery gauge */
+    .rg{text-align:center;padding:1.5rem;margin-bottom:.5rem}
+    .rg svg{width:200px;height:200px}
+    .rg-rec{font-size:.85rem;color:var(--dim);margin-top:.5rem;font-style:italic}
+    .rg-components{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin-top:1rem;max-width:600px;margin-left:auto;margin-right:auto}
+    .rg-comp{background:var(--card);border-radius:6px;padding:.5rem;text-align:center}
+    .rg-comp .rc-label{font-size:.5rem;text-transform:uppercase;color:var(--dim);letter-spacing:.08em;font-weight:600}
+    .rg-comp .rc-score{font-size:1.3rem;font-weight:800;font-family:'Space Grotesk',sans-serif}
+    .rg-comp .rc-detail{font-size:.5rem;color:var(--dim)}
+    .anomaly{background:linear-gradient(135deg,var(--card),#301020);border:1px solid rgba(255,68,102,.2);border-radius:8px;padding:.8rem 1rem;margin-bottom:.5rem;display:flex;align-items:center;gap:.8rem}
+    .anomaly.low{border-color:rgba(255,170,0,.2)}.anomaly.medium{border-color:rgba(255,100,50,.3)}.anomaly.high{border-color:rgba(255,0,0,.3)}
+    .anomaly .a-icon{font-size:1.5rem}
+    .anomaly .a-metric{font-weight:700;font-size:.85rem}
+    .anomaly .a-detail{font-size:.7rem;color:var(--dim)}
+    .anomaly .a-zscore{font-size:.65rem;font-weight:700;margin-left:auto}
+    .hidden{display:none}
+    .nd{color:var(--dim);font-size:.8rem;text-align:center;padding:2rem}
+    footer{text-align:center;padding:2rem;color:var(--dim);font-size:.6rem;border-top:1px solid rgba(255,255,255,.04);margin-top:2rem}
+    /* Route map modal */
+    .map-modal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:9999;display:none;align-items:center;justify-content:center;padding:1rem}
+    .map-modal.show{display:flex}
+    .map-container{background:var(--card);border:1px solid var(--cyan);border-radius:10px;width:100%;max-width:800px;overflow:hidden}
+    .map-container .map-hdr{padding:.8rem 1rem;display:flex;justify-content:space-between;align-items:center}
+    .map-container .map-hdr h3{color:var(--cyan);font-size:.85rem;font-family:'Space Grotesk',sans-serif}
+    .map-container .map-close{background:none;border:1px solid var(--dim);color:var(--dim);padding:.3rem .6rem;border-radius:4px;cursor:pointer;font-size:.7rem}
+    .map-container .map-close:hover{border-color:var(--red);color:var(--red)}
+    #routeMap{height:400px;width:100%}
+    .map-stats{padding:.6rem 1rem;display:flex;gap:1rem;flex-wrap:wrap;font-size:.7rem;color:var(--dim);border-top:1px solid rgba(255,255,255,.05)}
+    .map-stats b{color:var(--text)}
+    /* ─── Mobile (iPhone Brave) ─── */
+    @media(max-width:700px){
+      .hero{padding:1.5rem .5rem 1rem}
+      .hero svg{max-width:320px}
+      .hero-sub{gap:.5rem}
+      .hero-pill{font-size:.55rem;padding:.2rem .5rem}
+      .tabs{gap:.25rem;padding:.5rem .3rem}
+      .tab{padding:.3rem .5rem;font-size:.6rem}
+      main{padding:.5rem}
+      .sh{margin:1.2rem 0 .5rem}
+      .sh-text{font-size:.75rem}
+      .sh-icon{width:24px;height:24px;font-size:.75rem}
+      /* Grid: 2 columns on mobile for metric cards */
+      .grid{grid-template-columns:repeat(2,1fr);gap:.5rem}
+      .mc{padding:.6rem}
+      .mc .vl{font-size:1.4rem}
+      .mc .lb{font-size:.55rem}
+      .mc .ic{font-size:1rem}
+      /* HR section: stack vertically */
+      .hr-row{grid-template-columns:1fr;gap:.6rem}
+      .hr-big .bpm{font-size:2.5rem}
+      /* Workout/sleep cards: single column */
+      .wg{grid-template-columns:1fr;gap:.5rem}
+      .wc{padding:.7rem}
+      .wc .ws,.wc .ws2{grid-template-columns:repeat(4,1fr);gap:.2rem}
+      .wc .wv{font-size:.85rem}
+      .wc .wl{font-size:.4rem}
+      /* Recovery gauge */
+      .rg{padding:1rem}
+      .rg svg{width:160px;height:160px}
+      .rg-components{grid-template-columns:repeat(2,1fr);gap:.4rem}
+      .rg-comp{padding:.4rem}
+      .rg-comp .rc-score{font-size:1.1rem}
+      .rg-comp .rc-detail{font-size:.45rem}
+      .rg-rec{font-size:.75rem}
+      /* Activity rings */
+      .rings{gap:.8rem;flex-wrap:wrap;justify-content:center}
+      .ring-wrap svg{width:80px;height:80px}
+      .ring-label{font-size:.5rem}
+      /* Tables */
+      .wt{font-size:.6rem}
+      .wt th{font-size:.5rem;padding:.3rem}
+      .wt td{padding:.3rem}
+      /* Calendar */
+      .cal-d{min-height:45px;padding:.2rem;font-size:.5rem}
+      .cal-d .dn{font-size:.6rem}
+      .cal-nav .cm{font-size:.9rem}
+      /* Trend charts */
+      .tc{padding:.6rem}
+      .tc .tl{font-size:.55rem}
+      .tc .tv{font-size:.7rem}
+      /* Anomaly alerts */
+      .anomaly{padding:.6rem .7rem;gap:.5rem}
+      .anomaly .a-metric{font-size:.75rem}
+      .anomaly .a-detail{font-size:.6rem}
+      .anomaly .a-icon{font-size:1.2rem}
+      /* Insights/correlations */
+      .ins{padding:.6rem .7rem;font-size:.65rem}
+      /* Day detail */
+      .dd{padding:.8rem}
+      /* Sleep cards */
+      .slc{padding:.7rem}
+      /* Footer */
+      footer{font-size:.5rem;padding:1rem}
+    }
+    @media(max-width:380px){
+      .grid{grid-template-columns:1fr}
+      .rg-components{grid-template-columns:repeat(2,1fr)}
+      .tabs{padding:.4rem .2rem}
+      .tab{padding:.25rem .4rem;font-size:.55rem}
+    }
+    ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:rgba(0,232,255,.2);border-radius:3px}
+  </style>
+</head>
+<body>
+
+  <header class="hero">
+    <svg viewBox="0 0 500 120" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="g1" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur in="SourceGraphic" stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="g2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur in="SourceGraphic" stdDeviation="10" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <linearGradient id="tg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00e8ff"/><stop offset="50%" stop-color="#cc44ff"/><stop offset="100%" stop-color="#ff00aa"/></linearGradient>
+        <linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="transparent"/><stop offset="20%" stop-color="#00e8ff"/><stop offset="80%" stop-color="#ff00aa"/><stop offset="100%" stop-color="transparent"/></linearGradient>
+      </defs>
+      <!-- Heartbeat line behind title -->
+      <polyline points="0,60 80,60 100,60 110,30 120,80 130,45 140,65 150,58 160,60 500,60" fill="none" stroke="#ff4466" stroke-width="1" opacity="0.15" filter="url(#g2)"/>
+      <!-- Title glow layers -->
+      <text x="250" y="50" text-anchor="middle" font-family="'Space Grotesk',sans-serif" font-size="42" font-weight="700" letter-spacing="0.15em" fill="#ff00aa" opacity="0.2" filter="url(#g2)">NIXVITALS</text>
+      <text x="250" y="50" text-anchor="middle" font-family="'Space Grotesk',sans-serif" font-size="42" font-weight="700" letter-spacing="0.15em" fill="#00e8ff" opacity="0.15" filter="url(#g1)">NIXVITALS</text>
+      <text x="250" y="50" text-anchor="middle" font-family="'Space Grotesk',sans-serif" font-size="42" font-weight="700" letter-spacing="0.15em" fill="url(#tg)">NIXVITALS</text>
+      <!-- Separator -->
+      <rect x="120" y="65" width="260" height="1.5" fill="url(#lg)" filter="url(#g1)" rx="1"/>
+      <!-- Subtitle -->
+      <text x="250" y="85" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="400" letter-spacing="0.35em" fill="#7878a0">APPLE HEALTH DASHBOARD</text>
+      <!-- Corner accents -->
+      <polyline points="20,15 20,8 27,8" fill="none" stroke="#00e8ff" stroke-width=".8" opacity=".4"/>
+      <polyline points="480,15 480,8 473,8" fill="none" stroke="#00e8ff" stroke-width=".8" opacity=".4"/>
+      <polyline points="20,105 20,112 27,112" fill="none" stroke="#ff00aa" stroke-width=".8" opacity=".4"/>
+      <polyline points="480,105 480,112 473,112" fill="none" stroke="#ff00aa" stroke-width=".8" opacity=".4"/>
+    </svg>
+    <div class="hero-sub">
+      <span class="hero-pill"><span class="dot"></span> Apple Watch Syncing</span>
+      <span class="hero-pill" id="dbstat"></span>
+    </div>
+    <div class="upd" id="upd"></div>
+  </header>
+
+  <nav class="tabs">
+    <div class="tab active" data-tab="briefing">Briefing</div>
+    <div class="tab" data-tab="today">Dashboard</div>
+    <div class="tab" data-tab="trends">Trends</div>
+    <div class="tab" data-tab="workouts">Workouts</div>
+    <div class="tab" data-tab="sleep-tab">Sleep</div>
+    <div class="tab" data-tab="report">Report</div>
+    <div class="tab" data-tab="calendar">Calendar</div>
+  </nav>
+
+  <main>
+    <!-- BRIEFING TAB -->
+    <div id="tab-briefing">
+      <div id="recoveryGauge"></div>
+      <div id="brRecoverySpark" style="margin-top:.4rem"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(0,232,255,.1)">😴</div><div class="sh-text" style="color:var(--cyan)">Last Night's Sleep</div><div class="sh-line"></div></div>
+      <div class="grid" id="brSleep"></div>
+      <div id="brSleepTrend" style="margin-top:.6rem"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(255,0,170,.1)">🏃</div><div class="sh-text" style="color:var(--mag)">Latest Workout</div><div class="sh-line"></div></div>
+      <div id="brLatestWorkout"></div>
+      <div id="brWorkoutMap" style="margin-top:.5rem;border-radius:10px;overflow:hidden;border:1px solid rgba(0,232,255,.15);display:none"><div id="brRouteMap" style="height:300px;width:100%"></div></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(255,170,0,.1)">🏋️</div><div class="sh-text" style="color:var(--amber)">Training Load</div><div class="sh-line"></div></div>
+      <div class="grid" id="brTraining"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(255,0,0,.1)">🦠</div><div class="sh-text" style="color:var(--red)">Illness Detection</div><div class="sh-line"></div></div>
+      <div id="brIllness"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(170,102,255,.1)">🔮</div><div class="sh-text" style="color:var(--purple)">Tonight's Sleep Prediction</div><div class="sh-line"></div></div>
+      <div id="brSleepPred"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(255,68,102,.1)">🚨</div><div class="sh-text" style="color:var(--red)">Anomaly Alerts</div><div class="sh-line"></div></div>
+      <div id="brAnomalies"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(0,255,136,.1)">📊</div><div class="sh-text" style="color:var(--green)">Today So Far</div><div class="sh-line"></div></div>
+      <div class="grid" id="brToday"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(170,102,255,.1)">🔗</div><div class="sh-text" style="color:var(--purple)">Your Body's Patterns</div><div class="sh-line"></div></div>
+      <div id="brCorrelations"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(255,170,0,.1)">🦿</div><div class="sh-text" style="color:var(--amber)">Gait & Mobility Trends</div><div class="sh-line"></div></div>
+      <div class="grid" id="brGait"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(0,232,255,.1)">📈</div><div class="sh-text" style="color:var(--cyan)">Fitness Trajectory</div><div class="sh-line"></div></div>
+      <div class="grid" id="brMetricTrends"></div>
+    </div>
+
+    <div id="tab-today" class="hidden">
+      <div id="ringSection"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(255,0,170,.1)">🏃</div><div class="sh-text" style="color:var(--mag)">Recent Workouts</div><div class="sh-line"></div></div>
+      <div class="wg" id="rw"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(0,232,255,.1)">😴</div><div class="sh-text" style="color:var(--cyan)">Sleep History</div><div class="sh-line"></div></div>
+      <div id="sl"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(0,255,136,.1)">📊</div><div class="sh-text" style="color:var(--green)">Today's Activity</div><div class="sh-line"></div></div>
+      <div class="grid" id="act"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(255,68,102,.1)">❤️</div><div class="sh-text" style="color:var(--red)">Heart Rate</div><div class="sh-line"></div></div>
+      <div class="hr-row" id="hr"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(255,170,0,.1)">🧬</div><div class="sh-text" style="color:var(--amber)">Body & Recovery</div><div class="sh-line"></div></div>
+      <div class="grid" id="bod"></div>
+    </div>
+    <div id="tab-trends" class="hidden">
+      <div class="sh"><div class="sh-icon" style="background:rgba(255,0,170,.1)">🏋️</div><div class="sh-text" style="color:var(--mag)">Workout Trends</div><div class="sh-line"></div></div><div id="twk"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(0,232,255,.1)">🌙</div><div class="sh-text" style="color:var(--cyan)">Sleep Trends</div><div class="sh-line"></div></div><div id="tsl"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(0,255,136,.1)">🔥</div><div class="sh-text" style="color:var(--green)">Activity Trends</div><div class="sh-line"></div></div><div id="tact"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(255,68,102,.1)">💓</div><div class="sh-text" style="color:var(--red)">Heart Rate Trends</div><div class="sh-line"></div></div><div id="thr"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(255,170,0,.1)">🦿</div><div class="sh-text" style="color:var(--amber)">Body & Gait</div><div class="sh-line"></div></div><div id="tbod"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(170,102,255,.1)">🧠</div><div class="sh-text" style="color:var(--purple)">Insights</div><div class="sh-line"></div></div><div id="tins"></div>
+    </div>
+    <div id="tab-workouts" class="hidden">
+      <div class="sh"><div class="sh-icon" style="background:rgba(255,0,170,.1)">🏆</div><div class="sh-text" style="color:var(--mag)">Lifetime Stats</div><div class="sh-line"></div></div>
+      <div class="grid" id="wkOverall"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(255,170,0,.1)">🥇</div><div class="sh-text" style="color:var(--amber)">Personal Records</div><div class="sh-line"></div></div>
+      <div class="grid" id="wkPRs"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(0,232,255,.1)">📈</div><div class="sh-text" style="color:var(--cyan)">Per-Workout Trends</div><div class="sh-line"></div></div>
+      <div id="wkTrends"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(0,255,136,.1)">📊</div><div class="sh-text" style="color:var(--green)">Weekly Breakdown</div><div class="sh-line"></div></div>
+      <div id="wkWeekly"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(255,0,170,.1)">📋</div><div class="sh-text" style="color:var(--mag)">All Workouts</div><div class="sh-line"></div></div>
+      <div id="wt"></div>
+    </div>
+    <div id="tab-sleep-tab" class="hidden">
+      <div class="sh"><div class="sh-icon" style="background:rgba(0,232,255,.1)">🏆</div><div class="sh-text" style="color:var(--cyan)">Sleep Overview</div><div class="sh-line"></div></div>
+      <div class="grid" id="slOverall"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(255,170,0,.1)">🥇</div><div class="sh-text" style="color:var(--amber)">Sleep Records</div><div class="sh-line"></div></div>
+      <div class="grid" id="slRecords"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(0,255,136,.1)">🗓️</div><div class="sh-text" style="color:var(--green)">12-Month Heatmap</div><div class="sh-line"></div></div>
+      <div id="slHeatmap"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(170,102,255,.1)">🛌</div><div class="sh-text" style="color:var(--purple)">Sleep Schedule (last 21 nights)</div><div class="sh-line"></div></div>
+      <div id="slSchedule"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(0,232,255,.1)">🧬</div><div class="sh-text" style="color:var(--cyan)">Stage Composition (rolling 7-day)</div><div class="sh-line"></div></div>
+      <div id="slStageShare"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(255,0,170,.1)">💤</div><div class="sh-text" style="color:var(--mag)">Quality vs Duration</div><div class="sh-line"></div></div>
+      <div id="slQualityScatter"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(255,170,0,.1)">🌡️</div><div class="sh-text" style="color:var(--amber)">Wrist Temperature Anomaly Band</div><div class="sh-line"></div></div>
+      <div id="slTempAnom"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(255,68,102,.1)">❤️‍🩹</div><div class="sh-text" style="color:var(--red)">HR During Sleep (with stages)</div><div class="sh-line"></div></div>
+      <div id="slHRCurve"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(0,255,136,.1)">🏋️</div><div class="sh-text" style="color:var(--green)">Workout Strain × Next-Night Sleep</div><div class="sh-line"></div></div>
+      <div id="slStrainSleep"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(170,102,255,.1)">📈</div><div class="sh-text" style="color:var(--purple)">Nightly Trends</div><div class="sh-line"></div></div>
+      <div id="slTrends"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(0,255,136,.1)">📊</div><div class="sh-text" style="color:var(--green)">Weekly Averages</div><div class="sh-line"></div></div>
+      <div id="slWeekly"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(255,0,170,.1)">📅</div><div class="sh-text" style="color:var(--mag)">Monthly Averages</div><div class="sh-line"></div></div>
+      <div id="slMonthly"></div>
+      <div class="sh"><div class="sh-icon" style="background:rgba(0,232,255,.1)">🌙</div><div class="sh-text" style="color:var(--cyan)">All Nights</div><div class="sh-line"></div></div>
+      <div id="slAll"></div>
+    </div>
+    <div id="tab-report" class="hidden">
+      <div class="sh"><div class="sh-icon" style="background:rgba(170,102,255,.1)">📋</div><div class="sh-text" style="color:var(--purple)">Monthly Report Card</div><div class="sh-line"></div></div>
+      <div id="reportNav" style="text-align:center;margin-bottom:1rem"></div>
+      <div id="reportContent"></div>
+    </div>
+    <div id="tab-calendar" class="hidden"><div class="sh"><div class="sh-icon" style="background:rgba(255,170,0,.1)">📅</div><div class="sh-text" style="color:var(--amber)">Monthly View</div><div class="sh-line"></div></div><div id="cv"></div><div class="dd" id="dd"></div></div>
+  </main>
+
+  <div class="map-modal" id="mapModal" role="dialog" aria-modal="true" aria-labelledby="mapTitle" aria-hidden="true" onclick="if(event.target===this)closeMap()">
+    <div class="map-container">
+      <div class="map-hdr"><h3 id="mapTitle">Workout Route</h3><button class="map-close" onclick="closeMap()">Close</button></div>
+      <div id="routeMap"></div>
+      <div class="map-stats" id="mapStats"></div>
+    </div>
+  </div>
+  <footer>Apple Health Dashboard · self-hosted · Apple Watch → Health Auto Export → SQLite</footer>
+
+  <script>
+    document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');
+      ['briefing','today','trends','workouts','sleep-tab','report','calendar'].forEach(id=>document.getElementById('tab-'+id)?.classList.add('hidden'));
+      document.getElementById('tab-'+t.dataset.tab).classList.remove('hidden');
+      if(t.dataset.tab==='briefing')loadBriefing();if(t.dataset.tab==='today')loadToday();if(t.dataset.tab==='trends')loadTrends();if(t.dataset.tab==='workouts')loadWk();if(t.dataset.tab==='sleep-tab')loadSleepPage();if(t.dataset.tab==='report')loadReport();if(t.dataset.tab==='calendar')loadCal();
+    }));
+    // Show exact integers with thousands separator. Used to round to "5.8k";
+    // user wants the real number, not an abbreviation. 6,057 not 6.1k.
+    const F=n=>(typeof n==='number'&&!isNaN(n)?Math.round(n):0).toLocaleString();
+    const D=s=>{try{if(!s)return'';const d=new Date(s.replace(' ','T').replace(/ ([+-]\d{4})$/,'$1'));if(isNaN(d.getTime()))return s;return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})+' '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}catch{return s}};
+    // Safe Date.toLocaleString that never throws (used for "Last sync" strings)
+    const safeTime=s=>{try{if(!s)return'--';const d=new Date(s);if(isNaN(d.getTime()))return'--';return d.toLocaleString()}catch{return'--'}};
+    // Format decimal hours (e.g. 5.4) → "5h 24m". Handles negatives (sleep debt) and sub-hour values.
+    const hm=v=>{if(v==null||isNaN(v))return'--';const neg=v<0;const x=Math.abs(+v);const h=Math.floor(x);const m=Math.round((x-h)*60);const hh=m===60?h+1:h;const mm=m===60?0:m;const s=hh===0?(mm+'m'):(mm===0?(hh+'h'):(hh+'h '+mm+'m'));return neg?'-'+s:s;};
+    // Percentage helper that returns '--' when denominator is 0 or missing (avoids "0%" lies)
+    const pct=(num,den)=>(den>0&&num!=null&&!isNaN(num))?Math.round(num/den*100)+'%':'--';
+    // Resilient fetch — always returns an object, never throws; caller can check _error
+    const fetchJSON=async(url)=>{try{const r=await fetch(url);if(!r.ok)return{_error:'HTTP '+r.status,_status:r.status};return await r.json()}catch(e){return{_error:e.message||'Network error'}}};
+    // Tooltip system (guard against double-injection if script ever re-runs)
+    let ttEl=document.getElementById('__hvtt');
+    if(!ttEl){ttEl=document.createElement('div');ttEl.id='__hvtt';ttEl.style.cssText='position:fixed;background:#1c1c44;border:1px solid var(--cyan);color:var(--text);padding:4px 10px;border-radius:5px;font-size:13px;font-weight:700;pointer-events:none;z-index:9999;display:none;white-space:nowrap;box-shadow:0 0 12px rgba(0,232,255,.3)';document.body.appendChild(ttEl);}
+    function showTT(e,text){ttEl.textContent=text;ttEl.style.display='block';ttEl.style.left=(e.clientX+12)+'px';ttEl.style.top=(e.clientY-30)+'px';}
+    function hideTT(){ttEl.style.display='none';}
+
+    // SVG chart builder with hover zones
+    let _svgId=0;
+    function svg(data,w,h,color,fill,labels){
+      if(!data||data.length<2)return'';
+      const id='sv'+(_svgId++);
+      const mn=Math.min(...data)*.9,mx=Math.max(...data)*1.1||1;
+      const coords=data.map((v,i)=>({x:+(i/(data.length-1)*w).toFixed(1),y:+(h-(v-mn)/(mx-mn)*h).toFixed(1),v:Math.round(v*10)/10}));
+      const pts=coords.map(c=>`${c.x},${c.y}`);
+      let s='';
+      if(fill)s+=`<polygon points="0,${h} ${pts.join(' ')} ${w},${h}" fill="${fill}"/>`;
+      s+=`<polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/>`;
+      // Hover zones — invisible rects that trigger JS tooltip
+      const zw=w/data.length;
+      coords.forEach((c,i)=>{
+        const lbl=labels?labels[i]:'';
+        const tip=lbl?`${lbl}: ${c.v}`:`${c.v}`;
+        s+=`<rect x="${Math.max(0,c.x-zw/2)}" y="0" width="${zw}" height="${h}" fill="transparent" style="cursor:crosshair" data-tip="${tip}" onmouseenter="showTT(event,'${tip.replace(/'/g,'\\&#39;')}')" onmousemove="showTT(event,'${tip.replace(/'/g,'\\&#39;')}')" onmouseleave="hideTT()"/>`;
+        s+=`<circle cx="${c.x}" cy="${c.y}" r="1" fill="${color}" opacity="0.4"/>`;
+      });
+      return s;
+    }
+    function bars(data,keys,colors,w,h){const mx=Math.max(...data.map(d=>keys.reduce((s,k)=>s+(d[k]||0),0)),1);const bw=w/data.length;let s='';data.forEach((d,i)=>{let y=h;keys.forEach((k,ki)=>{const bh=(d[k]||0)/mx*(h-5);s+=`<rect x="${i*bw+1}" y="${y-bh}" width="${bw-2}" height="${bh}" fill="${colors[ki]}" rx="2" opacity="0.85"/>`;y-=bh;});});return s;}
+
+    // Activity ring SVG
+    function ring(pct,color,label,value,unit,size=90){
+      const r=36,c=2*Math.PI*r,offset=c*(1-Math.min(pct,1));
+      return`<div class="ring-wrap"><svg width="${size}" height="${size}" viewBox="0 0 100 100"><circle cx="50" cy="50" r="${r}" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="8"/><circle cx="50" cy="50" r="${r}" fill="none" stroke="${color}" stroke-width="8" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${offset}" transform="rotate(-90 50 50)" style="transition:stroke-dashoffset 1s ease"/><text x="50" y="46" text-anchor="middle" font-family="'Space Grotesk',sans-serif" font-size="16" font-weight="800" fill="${color}">${value}</text><text x="50" y="60" text-anchor="middle" font-size="7" fill="${'var(--dim)'}">${unit}</text></svg><div class="ring-label">${label}</div></div>`;
+    }
+
+    function mCard(icon,label,value,unit,color){
+      return`<div class="mc" style="--c:${color}"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:${color}"></div><div class="ic">${icon}</div><div class="lb">${label}</div><div class="vl" style="color:${color}">${value}</div><div class="ut">${unit}</div></div>`;
+    }
+
+    function wCard(w){
+      const strainColor=w.strain>=14?'var(--red)':w.strain>=8?'var(--amber)':'var(--green)';
+      const routeBtn=w.id&&!w.isIndoor?` <span style="font-size:.6rem;color:var(--cyan);cursor:pointer;text-decoration:underline" onclick="event.stopPropagation();showRoute('${w.id.replace(/'/g,"\\'")}','${w.name}')">🗺️ Map</span>`:'';
+      return`<div class="wc"><div class="wn">🏃 ${w.name}${routeBtn}</div><div class="wd">${D(w.start)}</div><div class="ws"><div><div class="wv" style="color:var(--amber)">${w.duration}'</div><div class="wl">Duration</div></div><div><div class="wv" style="color:var(--green)">${w.distance}mi</div><div class="wl">Distance</div></div><div><div class="wv" style="color:var(--red)">${w.avgHR}</div><div class="wl">Avg HR</div></div><div><div class="wv" style="color:var(--mag)">${w.calories}</div><div class="wl">Calories</div></div></div><div class="ws2"><div><div class="wv" style="color:var(--cyan)">${w.pace}'/mi</div><div class="wl">Pace</div></div><div><div class="wv" style="color:var(--green)">${w.elevationGain}'</div><div class="wl">Elev ft</div></div><div><div class="wv" style="color:${strainColor}">${w.strain}</div><div class="wl">Strain /21</div></div><div><div class="wv" style="color:var(--purple)">${w.calPerMin}</div><div class="wl">Cal/min</div></div></div></div>`;
+    }
+
+    function sleepCard(s){
+      const d=s.date?new Date(s.date.replace(' ','T').replace(/ ([+-]\d{4})$/,'$1')):null;
+      const ds=d?d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}):'';
+      const st=s.sleepStart?new Date(s.sleepStart.replace(' ','T').replace(/ ([+-]\d{4})$/,'$1')).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'';
+      const et=s.sleepEnd?new Date(s.sleepEnd.replace(' ','T').replace(/ ([+-]\d{4})$/,'$1')).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'';
+      const total=s.duration||.01;
+      return`<div class="slc"><div class="wn" style="color:var(--cyan);font-size:.85rem;font-weight:700;font-family:'Space Grotesk',sans-serif">🌙 ${ds}</div><div class="wd" style="font-size:.6rem;color:var(--dim)">${st} → ${et}</div><div class="sbar"><div style="width:${s.deep/total*100}%;background:var(--blue)" title="Deep ${hm(s.deep)}"></div><div style="width:${s.rem/total*100}%;background:var(--mag)" title="REM ${hm(s.rem)}"></div><div style="width:${s.core/total*100}%;background:var(--teal)" title="Core ${hm(s.core)}"></div><div style="width:${s.awake/total*100}%;background:rgba(255,255,255,.15)" title="Awake ${hm(s.awake)}"></div></div><div class="ws" style="display:grid;grid-template-columns:repeat(4,1fr);gap:.3rem"><div style="text-align:center"><div class="wv" style="color:var(--cyan);font-size:1rem;font-weight:700">${hm(s.duration)}</div><div class="wl" style="font-size:.5rem;color:var(--dim)">Total</div></div><div style="text-align:center"><div class="wv" style="color:var(--blue);font-size:1rem;font-weight:700">${hm(s.deep)}</div><div class="wl" style="font-size:.5rem;color:var(--dim)">Deep</div></div><div style="text-align:center"><div class="wv" style="color:var(--mag);font-size:1rem;font-weight:700">${hm(s.rem)}</div><div class="wl" style="font-size:.5rem;color:var(--dim)">REM</div></div><div style="text-align:center"><div class="wv" style="color:var(--teal);font-size:1rem;font-weight:700">${hm(s.core)}</div><div class="wl" style="font-size:.5rem;color:var(--dim)">Core</div></div></div></div>`;
+    }
+
+    // ─── DASHBOARD ───
+    async function loadToday(){
+      const d=await fetchJSON('/api/dashboard');
+      if(d._error){document.getElementById('upd').textContent='⚠️ Dashboard API unavailable ('+d._error+')';return;}
+      if(d.error)return;
+      const t=d.today,hr=d.heartRate,b=d.body;
+
+      // Activity rings (goals: 10k steps, 600cal, 30min exercise)
+      document.getElementById('ringSection').innerHTML=`<div class="rings">${ring(t.steps/10000,'var(--green)','Steps',F(t.steps),'of 10k')}${ring(t.activeCalories/600,'var(--mag)','Calories',F(t.activeCalories),'of 600')}${ring(t.exerciseMinutes/30,'var(--amber)','Exercise',t.exerciseMinutes,'of 30 min')}${ring(t.standHours/12,'var(--cyan)','Stand',t.standHours,'of 12 hrs')}</div>`;
+
+      document.getElementById('rw').innerHTML=d.workouts.map(wCard).join('')||'<div class="nd">No workouts today</div>';
+
+      // Sleep cards
+      loadSleepCards();
+
+      document.getElementById('act').innerHTML=[
+        mCard('👟','Steps',F(t.steps),'steps','var(--green)'),mCard('🔥','Active Cal',F(t.activeCalories),'kcal','var(--mag)'),
+        mCard('⏱️','Exercise',t.exerciseMinutes,'min','var(--amber)'),mCard('🧍','Stand',t.standHours,'hours','var(--cyan)'),
+        mCard('📏','Distance',t.distance,'miles','var(--green)'),mCard('🪜','Flights',t.flightsClimbed,'climbed','var(--amber)')
+      ].join('');
+
+      const cSvg=hr.data?.length>1?(()=>{
+        const bpms=hr.data.map(p=>p.bpm),minB=Math.min(...bpms),maxB=Math.max(...bpms);
+        const step=Math.max(1,Math.floor(hr.data.length/6));
+        const tl=hr.data.map((p,i)=>(i%step===0||i===hr.data.length-1)?`<div style="text-align:center"><div style="color:var(--red);font-weight:700;font-size:.55rem">${p.bpm}</div><div>${p.time}</div></div>`:'<div></div>').join('');
+        return`<svg viewBox="0 0 100 100" preserveAspectRatio="none">${svg(bpms,100,100,'var(--red)','rgba(255,68,102,0.08)',hr.data.map(p=>p.time))}</svg><div style="display:flex;justify-content:space-between;font-size:.5rem;color:var(--dim);margin-top:.2rem">${tl}</div><div style="display:flex;justify-content:space-between;font-size:.55rem;margin-top:.2rem"><span style="color:var(--cyan)">Low: ${minB}</span><span style="color:var(--dim)">Avg: ${hr.avg}</span><span style="color:var(--mag)">High: ${maxB}</span></div>`;
+      })():'<div class="nd">Not enough data</div>';
+      document.getElementById('hr').innerHTML=`<div><div class="hr-big"><div class="bl">Average BPM</div><div class="bpm">${hr.avg||'--'}</div></div><div class="hr-sm"><div class="c"><div class="cl">Resting</div><div class="cv" style="color:var(--cyan)">${hr.resting||'--'}</div></div><div class="c"><div class="cl">Peak</div><div class="cv" style="color:var(--mag)">${hr.max||'--'}</div></div></div></div><div class="hr-chart">${cSvg}</div>`;
+
+      // Enriched metric card: value + baseline + trend arrow
+      const eCard=(icon,label,m,unit,color)=>{
+        if(!m||typeof m!=='object') return mCard(icon,label,m,unit,color);
+        const dc=m.delta>0?'var(--green)':m.delta<0?'var(--red)':'var(--dim)';
+        return`<div class="mc"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:${color}"></div><div class="ic">${icon}</div><div class="lb">${label}</div><div class="vl" style="color:${color}">${m.value} <span style="font-size:.6rem">${m.arrow}</span></div><div class="ut">${unit}</div><div style="font-size:.5rem;color:var(--dim);margin-top:.15rem">avg ${m.avg} · <span style="color:${dc}">${m.delta>0?'+':''}${m.delta}</span></div></div>`;
+      };
+      document.getElementById('bod').innerHTML=[
+        eCard('🫁','VO2 Max',b.vo2Max,'ml/kg·min','var(--green)'),eCard('🚶','Walk Speed',b.walkingSpeed,'mph','var(--amber)'),
+        eCard('👣','Step Length',b.stepLength,'inches','var(--amber)'),eCard('⚖️','Asymmetry',b.walkingAsymmetry,'% L/R','var(--cyan)'),
+        eCard('💚','Recovery',b.cardioRecovery,'bpm/min','var(--green)')
+      ].join('');
+
+      document.getElementById('upd').textContent='Last iPhone sync: '+safeTime(d.lastUpdated);
+
+      // DB stats in header
+      const s=await fetchJSON('/api/stats');
+      if(!s._error)document.getElementById('dbstat').textContent=`📊 ${F(s.metrics+s.hr_readings)} readings · ${s.db_size_kb}KB`;
+    }
+
+    async function loadSleepCards(){
+      const data=await fetchJSON('/api/sleep');
+      if(data._error||!Array.isArray(data)||!data.length){document.getElementById('sl').innerHTML='<div class="nd">No sleep data</div>';return;}
+      document.getElementById('sl').innerHTML='<div class="wg">'+data.map(sleepCard).join('')+'</div>';
+    }
+
+    // ─── TRENDS ───
+    let _td=[];
+    function tc(title,values,color,unit,opts={}){
+      const valid=values.filter(v=>v>0);if(valid.length===0)return'';
+      const avg=Math.round(valid.reduce((a,b)=>a+b,0)/valid.length*10)/10;
+      const mn=Math.round(Math.min(...valid)*10)/10,mx=Math.round(Math.max(...valid)*10)/10;
+      const latest=values[values.length-1],prev=values.length>1?values[values.length-2]:latest;
+      const delta=Math.round((latest-prev)*10)/10;
+      const arrow=delta>0?'↑':delta<0?'↓':'→';
+      const dc=opts.lower?(delta<0?'var(--green)':delta>0?'var(--red)':'var(--dim)'):(delta>0?'var(--green)':delta<0?'var(--red)':'var(--dim)');
+      // Show every date+value if <=7 points, otherwise every nth
+      const step=_td.length<=7?1:Math.ceil(_td.length/6);
+      const axis=_td.map((d,i)=>{
+        const show=i%step===0||i===_td.length-1;
+        const raw=values[i]!=null?Math.round(values[i]*10)/10:null;
+        const v=raw===null?'':raw===0?'—':raw;
+        return show?`<div style="text-align:center"><div style="color:${color};font-weight:800;font-size:.7rem">${v}</div><div style="font-size:.55rem">${d}</div></div>`:'<div></div>';
+      }).join('');
+      return`<div class="tc"><div style="display:flex;justify-content:space-between;align-items:baseline"><div class="tl">${title}</div><div class="ti">avg <b style="color:${color}">${avg}</b> ${unit} · ${mn}–${mx}</div></div><svg viewBox="0 0 100 60" preserveAspectRatio="none">${svg(values,100,60,color,'rgba(255,255,255,.03)',_td)}</svg><div style="display:flex;justify-content:space-between;font-size:.5rem;color:var(--dim);margin-top:.2rem">${axis}</div><div class="tr"><div class="tv" style="color:${color}">Latest: ${latest} ${unit}</div><div class="td" style="color:${dc}">${arrow} ${Math.abs(delta)} ${unit} vs prior</div></div></div>`;
+    }
+    function stackBar(title,data,keys,colors,labels){
+      const step=_td.length<=7?1:Math.ceil(_td.length/6);
+      const dl=_td.map((d,i)=>(i%step===0||i===_td.length-1)?`<span>${d}</span>`:'<span></span>').join('');
+      const totals=data.map(d=>Math.round(keys.reduce((s,k)=>s+(d[k]||0),0)*10)/10);
+      const vl=totals.map((t,i)=>(i%step===0||i===totals.length-1)?`<span style="font-weight:700;color:var(--cyan)">${t}h</span>`:'<span></span>').join('');
+      return`<div class="tc"><div style="display:flex;justify-content:space-between"><div class="tl">${title}</div><div>${labels.map((l,i)=>`<span style="color:${colors[i]};font-size:.55rem;font-weight:600">■ ${l}</span>`).join('  ')}</div></div><svg viewBox="0 0 100 60" preserveAspectRatio="none">${bars(data,keys,colors,100,60)}</svg><div style="display:flex;justify-content:space-between;font-size:.5rem;color:var(--dim);margin-top:.15rem">${dl}</div></div>`;
+    }
+
+    async function loadTrends(){
+      const data=await fetchJSON('/api/history?days=30');
+      if(data._error||!Array.isArray(data)||!data.length){['twk','tsl','tact','thr','tbod','tins'].forEach(id=>document.getElementById(id).innerHTML='<div class="nd">No data</div>');return;}
+      data.reverse();_td=data.map(d=>d.date.slice(5));
+
+      document.getElementById('twk').innerHTML=[tc('Duration',data.map(d=>d.extra?.totalWorkoutMin||0),'var(--mag)','min'),tc('Calories Burned',data.map(d=>d.extra?.totalWorkoutCal||0),'var(--amber)','kcal'),tc('Distance',data.map(d=>d.extra?.totalWorkoutDist||0),'var(--green)','mi'),tc('Avg Heart Rate',data.map(d=>d.extra?.avgWorkoutHR||0),'var(--red)','bpm'),tc('Pace',data.map(d=>d.extra?.avgPace||0),'var(--cyan)','min/mi',{lower:true}),tc('Elevation',data.map(d=>d.extra?.totalElevation||0),'var(--amber)','ft')].filter(Boolean).join('');
+
+      const sd=data.filter(d=>d.sleep.duration>0);
+      document.getElementById('tsl').innerHTML=[tc('Duration',data.map(d=>d.sleep.duration),'var(--cyan)','hrs'),sd.length>1?stackBar('Sleep Stages',sd.map(d=>d.sleep),['deep','rem','core'],['var(--blue)','var(--mag)','var(--teal)'],['Deep','REM','Core']):'',tc('Deep Sleep',data.map(d=>d.sleep.deep),'var(--blue)','hrs'),tc('REM Sleep',data.map(d=>d.sleep.rem),'var(--mag)','hrs'),tc('Core Sleep',data.map(d=>d.sleep.core),'var(--teal)','hrs'),tc('Respiratory Rate',data.map(d=>d.extra?.respiratoryRate||0),'var(--cyan)','/min',{lower:true}),tc('Wrist Temp',data.map(d=>d.extra?.wristTemp||0),'var(--amber)','°F')].filter(Boolean).join('');
+
+      document.getElementById('tact').innerHTML=[tc('Steps',data.map(d=>d.activity.steps),'var(--green)','steps'),tc('Active Calories',data.map(d=>d.activity.activeCalories),'var(--mag)','kcal'),tc('Total Burn',data.map(d=>d.extra?.totalCalories||0),'var(--amber)','kcal'),tc('Distance',data.map(d=>d.activity.distance),'var(--green)','mi'),tc('Exercise',data.map(d=>d.activity.exerciseMinutes),'var(--amber)','min'),tc('Stand Hours',data.map(d=>d.activity.standHours),'var(--cyan)','hrs'),tc('Flights',data.map(d=>d.activity.flightsClimbed),'var(--amber)','flights')].filter(Boolean).join('');
+
+      document.getElementById('thr').innerHTML=[tc('Average HR',data.map(d=>d.heartRate.avg),'var(--red)','bpm',{lower:true}),tc('Resting HR',data.map(d=>d.heartRate.resting),'var(--cyan)','bpm',{lower:true}),tc('Peak HR',data.map(d=>d.heartRate.max),'var(--mag)','bpm')].filter(Boolean).join('');
+
+      document.getElementById('tbod').innerHTML=[tc('Walking Speed',data.map(d=>d.extra?.walkingSpeed||0),'var(--amber)','mph'),tc('Step Length',data.map(d=>d.extra?.stepLength||0),'var(--amber)','in'),tc('VO2 Max',data.map(d=>d.extra?.vo2Max||0),'var(--green)','ml/kg·min'),tc('Asymmetry',data.map(d=>d.extra?.walkingAsymmetry||0),'var(--cyan)','%',{lower:true}),tc('Cardio Recovery',data.map(d=>d.extra?.cardioRecovery||0),'var(--green)','bpm/min')].filter(Boolean).join('');
+
+      // Insights
+      const avg=(arr)=>arr.length?Math.round(arr.reduce((a,b)=>a+b,0)/arr.length*10)/10:0;
+      const aS=avg(data.map(d=>d.activity.steps)),aSl=avg(data.filter(d=>d.sleep.duration>0).map(d=>d.sleep.duration));
+      const aE=avg(data.map(d=>d.activity.exerciseMinutes)),aH=avg(data.filter(d=>d.heartRate.avg>0).map(d=>d.heartRate.avg));
+      const aC=avg(data.map(d=>d.activity.activeCalories)),tW=data.reduce((s,d)=>s+d.workouts.length,0);
+      const tD=Math.round(data.reduce((s,d)=>s+d.activity.distance,0)*100)/100,tC=data.reduce((s,d)=>s+d.activity.activeCalories,0);
+      const best=(arr,fn)=>arr.reduce((b,d)=>fn(d)>fn(b)?d:b,arr[0]);
+      const bS=best(data,d=>d.activity.steps),bSl=best(data.filter(d=>d.sleep.duration>0),d=>d.sleep.duration);
+      let corr='';
+      const sd2=data.filter(d=>d.sleep.duration>0&&d.heartRate.avg>0);
+      if(sd2.length>=3){const gs=sd2.filter(d=>d.sleep.duration>=aSl),bs=sd2.filter(d=>d.sleep.duration<aSl);const gh=avg(gs.map(d=>d.heartRate.avg)),bh=avg(bs.map(d=>d.heartRate.avg));if(gh&&bh)corr+=`<div class="ins">💤→❤️ On ${aSl}+ hr sleep, avg HR is <b style="color:var(--green)">${gh} bpm</b>. Below that: <b style="color:var(--red)">${bh} bpm</b>.</div>`;}
+      const eD=data.filter(d=>d.extra?.totalWorkoutMin>0),rD=data.filter(d=>!d.extra?.totalWorkoutMin);
+      if(eD.length>=2&&rD.length>=2){corr+=`<div class="ins">🏃→👟 Workout days: <b style="color:var(--green)">${F(Math.round(avg(eD.map(d=>d.activity.steps))))} steps</b> vs rest days: <b style="color:var(--amber)">${F(Math.round(avg(rD.map(d=>d.activity.steps))))}</b></div>`;}
+      document.getElementById('tins').innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.7rem;margin-bottom:.7rem">${mCard('📈','Daily Avg Steps',F(Math.round(aS)),'per day','var(--green)')}${mCard('😴','Avg Sleep',aSl,'hrs/night','var(--cyan)')}${mCard('🔥','Avg Calories',F(Math.round(aC)),'per day','var(--mag)')}${mCard('❤️','Avg HR',aH,'bpm','var(--red)')}</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.7rem;margin-bottom:.7rem">${mCard('🏆','Best Steps',F(bS?.activity.steps||0),bS?.date.slice(5)||'','var(--green)')}${mCard('🌟','Best Sleep',(bSl?.sleep.duration||0)+'h',bSl?.date.slice(5)||'','var(--cyan)')}${mCard('🏃','Total Workouts',tW,`${tD} mi total`,'var(--mag)')}${mCard('⚡','Total Burn',F(tC),'kcal burned','var(--amber)')}</div>${corr}`;
+    }
+
+    // ─── WORKOUTS ───
+    async function loadWk(){
+      const d=await fetchJSON('/api/workout-analytics');
+      if(d._error||d.error){['wkOverall','wkPRs','wkTrends','wkWeekly','wt'].forEach(id=>document.getElementById(id).innerHTML='<div class="nd">No workouts</div>');return;}
+      const o=d.overall;
+
+      // Lifetime stats
+      document.getElementById('wkOverall').innerHTML=[
+        mCard('🏃','Total Workouts',o.count,'workouts','var(--mag)'),
+        mCard('⏱️','Total Time',o.totalDuration,'minutes','var(--amber)'),
+        mCard('📏','Total Distance',o.totalDistance,'miles','var(--green)'),
+        mCard('🔥','Total Calories',F(o.totalCalories),'kcal','var(--mag)'),
+        mCard('👟','Total Steps',F(o.totalSteps),'steps','var(--green)'),
+        mCard('⛰️','Total Elevation',F(o.totalElevation),'feet','var(--amber)'),
+        mCard('⏱️','Avg Duration',o.avgDuration,'min/workout','var(--cyan)'),
+        mCard('📏','Avg Distance',o.avgDistance,'mi/workout','var(--green)'),
+        mCard('🔥','Avg Calories',o.avgCalories,'cal/workout','var(--mag)'),
+        mCard('❤️','Avg Heart Rate',o.avgHR,'bpm','var(--red)'),
+        mCard('🏃','Avg Pace',o.avgPace,'min/mile','var(--cyan)'),
+        mCard('👣','Avg Cadence',o.avgCadence,'steps/min','var(--purple)'),
+        mCard('💪','Avg Strain',o.avgStrain,'/21 per workout','var(--red)'),
+        mCard('🔥','Total Strain',o.totalStrain,'cumulative','var(--amber)'),
+      ].join('');
+
+      // Personal records
+      const pr=d.prs;
+      const prCard=(icon,title,w,val,unit,color)=>`<div class="mc" style="position:relative"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:${color}"></div><div class="ic">${icon}</div><div class="lb">${title}</div><div class="vl" style="color:${color};font-size:1.5rem">${val}</div><div class="ut">${unit}</div><div style="font-size:.55rem;color:var(--dim);margin-top:.2rem">${w?.start?D(w.start):''}</div></div>`;
+      document.getElementById('wkPRs').innerHTML=[
+        prCard('⏱️','Longest',pr.longestDuration,pr.longestDuration?.duration+'\'','minutes','var(--amber)'),
+        prCard('📏','Farthest',pr.farthestDistance,pr.farthestDistance?.distance,'miles','var(--green)'),
+        prCard('🔥','Most Calories',pr.mostCalories,pr.mostCalories?.calories,'kcal','var(--mag)'),
+        prCard('💓','Highest HR',pr.highestHR,pr.highestHR?.maxHR,'bpm','var(--red)'),
+        prCard('⚡','Fastest Pace',pr.fastestPace,pr.fastestPace?.pace+'\'','per mile','var(--cyan)'),
+        prCard('👟','Most Steps',pr.mostSteps,F(pr.mostSteps?.steps),'steps','var(--green)'),
+      ].join('');
+
+      // Per-workout trend charts
+      const t=d.trends;
+      _td=t.map(x=>x.date.slice(5));
+      document.getElementById('wkTrends').innerHTML=[
+        tc('Duration per Workout',t.map(x=>x.duration),'var(--mag)','min'),
+        tc('Distance per Workout',t.map(x=>x.distance),'var(--green)','mi'),
+        tc('Calories per Workout',t.map(x=>x.calories),'var(--amber)','kcal'),
+        tc('Avg HR per Workout',t.map(x=>x.avgHR),'var(--red)','bpm',{lower:true}),
+        tc('Pace per Workout',t.map(x=>x.pace),'var(--cyan)','min/mi',{lower:true}),
+        tc('Steps per Workout',t.map(x=>x.steps),'var(--green)','steps'),
+        tc('Elevation per Workout',t.map(x=>x.elevation),'var(--amber)','ft'),
+        tc('Cadence per Workout',t.map(x=>x.cadence),'var(--purple)','spm'),
+        tc('Efficiency (Cal/min)',t.map(x=>x.calPerMin),'var(--mag)','cal/min'),
+        tc('Strain Score',t.map(x=>x.strain),'var(--red)','/ 21'),
+      ].filter(Boolean).join('');
+
+      // Weekly breakdown
+      const ws=d.weeklyStats;
+      document.getElementById('wkWeekly').innerHTML=`<table class="wt"><thead><tr><th>Week of</th><th>Count</th><th>Total Min</th><th>Total Mi</th><th>Total Cal</th><th>Total Steps</th><th>Avg Min</th><th>Avg Mi</th><th>Avg Cal</th><th>Avg HR</th><th>Avg Pace</th></tr></thead><tbody>${ws.map(w=>`<tr><td style="font-weight:600">${w.week}</td><td style="color:var(--mag);font-weight:700">${w.count}</td><td>${w.totalDuration}</td><td>${w.totalDistance}</td><td>${w.totalCalories}</td><td>${w.totalSteps}</td><td style="color:var(--amber)">${w.avgDuration}</td><td style="color:var(--green)">${w.avgDistance}</td><td style="color:var(--mag)">${w.avgCalories}</td><td style="color:var(--red)">${w.avgHR}</td><td style="color:var(--cyan)">${w.avgPace}'</td></tr>`).join('')}</tbody></table>`;
+
+      // Cardiac recovery trend
+      if(d.recoveryTrend?.length>1){
+        _td=d.recoveryTrend.map(x=>x.date.slice(5));
+        const rtHtml=tc('Cardiac Recovery Rate Over Time',d.recoveryTrend.map(x=>x.rate),'var(--green)','bpm/min drop');
+        document.getElementById('wkWeekly').insertAdjacentHTML('afterend','<div class="sh"><div class="sh-icon" style="background:rgba(0,255,136,.1)">💓</div><div class="sh-text" style="color:var(--green)">Cardiac Recovery Trend</div><div class="sh-line"></div><div class="sh-badge" style="color:var(--dim)">'+d.recoveryTrend.length+' readings</div></div>'+rtHtml);
+      }
+
+      // Full workout log
+      const all=d.workouts;
+      document.getElementById('wt').innerHTML=`<table class="wt"><thead><tr><th>Date</th><th>Type</th><th>Dur</th><th>Dist</th><th>Cal</th><th>Avg HR</th><th>Max HR</th><th>Steps</th><th>Pace</th><th>Elev</th><th>Cadence</th><th>Cal/min</th></tr></thead><tbody>${all.map(w=>`<tr><td>${D(w.start)}</td><td style="color:var(--mag);font-weight:600">${w.name}</td><td>${w.duration}m</td><td>${w.distance}mi</td><td>${w.calories}</td><td style="color:var(--red)">${w.avgHR}</td><td>${w.maxHR}</td><td>${w.steps}</td><td>${w.pace}'/mi</td><td>${w.elevationGain}ft</td><td>${w.cadence}</td><td>${w.calPerMin}</td></tr>`).join('')}</tbody></table>`;
+    }
+
+    // ─── CALENDAR ───
+    let cY,cM;
+    async function loadCal(y,m){const now=new Date();cY=y||now.getFullYear();cM=m||(now.getMonth()+1);const data=await fetchJSON(`/api/calendar?year=${cY}&month=${cM}`);if(data._error){document.getElementById('cv').innerHTML='<div class="nd">Calendar API unavailable</div>';return;}const mn=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];const fd=new Date(cY,cM-1,1).getDay();const td=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;let h=`<div class="cal-nav"><button onclick="loadCal(${cM===1?cY-1:cY},${cM===1?12:cM-1})">◀</button><span class="cm">${mn[cM]} ${cY}</span><button onclick="loadCal(${cM===12?cY+1:cY},${cM===12?1:cM+1})">▶</button></div><div class="cal-grid">`;['S','M','T','W','T','F','S'].forEach(d=>h+=`<div class="cal-h">${d}</div>`);for(let i=0;i<fd;i++)h+='<div class="cal-d empty"></div>';for(const d of data.days){h+=`<div class="cal-d${d.date===td?' active':''}" onclick="loadDD('${d.date}')"><div class="dn">${d.day}</div>${d.steps?`<div style="color:var(--green)">${F(d.steps)}</div>`:''}${d.sleepHrs?`<div style="color:var(--cyan)">${d.sleepHrs}h</div>`:''}${d.workouts?`<div style="color:var(--mag)">${d.workouts}🏃</div>`:''}</div>`;}h+='</div>';document.getElementById('cv').innerHTML=h;document.getElementById('dd').classList.remove('show');}
+    async function loadDD(date){
+      const d=await fetchJSON(`/api/day?date=${date}`);
+      if(d._error||d.error){const el=document.getElementById('dd');el.innerHTML='<div class="nd">Day data unavailable</div>';el.classList.add('show');return;}
+      const el=document.getElementById('dd');
+      const a=d.activity,hr=d.heartRate,s=d.sleep,ex=d.extra||{};
+      let html=`<h3>📅 ${date}</h3>`;
+
+      // 1. SLEEP FIRST
+      if(s.duration) html+=`<div style="font-size:.7rem;font-weight:700;color:var(--cyan);margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.08em">😴 Sleep</div><div class="grid" style="margin-bottom:.8rem">${[['😴','Total',hm(s.duration),'var(--cyan)'],['🌊','Deep',hm(s.deep),'var(--blue)'],['💭','REM',hm(s.rem),'var(--mag)'],['🔄','Core',hm(s.core),'var(--teal)']].map(([i,l,v,c])=>`<div class="mc"><div class="ic">${i}</div><div class="lb">${l}</div><div class="vl" style="color:${c};font-size:1.3rem">${v}</div></div>`).join('')}</div>`;
+
+      // 2. ACTIVITY
+      html+=`<div style="font-size:.7rem;font-weight:700;color:var(--green);margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.08em">📊 Activity</div><div class="grid" style="margin-bottom:.8rem">${[['👟','Steps',F(a.steps),'var(--green)'],['🔥','Calories',F(a.activeCalories),'var(--mag)'],['⏱️','Exercise',a.exerciseMinutes+'m','var(--amber)'],['📏','Distance',a.distance+'mi','var(--green)'],['🧍','Stand',a.standHours+'h','var(--cyan)'],['🪜','Flights',a.flightsClimbed,'var(--amber)']].map(([i,l,v,c])=>`<div class="mc"><div class="ic">${i}</div><div class="lb">${l}</div><div class="vl" style="color:${c};font-size:1.3rem">${v}</div></div>`).join('')}</div>`;
+
+      // 3. HEART RATE
+      if(hr.avg) html+=`<div style="font-size:.7rem;font-weight:700;color:var(--red);margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.08em">❤️ Heart Rate</div><div class="grid" style="margin-bottom:.5rem">${[['❤️','Avg',hr.avg,'var(--red)'],['💙','Resting',hr.resting,'var(--cyan)'],['💜','Peak',hr.max,'var(--mag)']].map(([i,l,v,c])=>`<div class="mc"><div class="ic">${i}</div><div class="lb">${l}</div><div class="vl" style="color:${c};font-size:1.3rem">${v}</div></div>`).join('')}</div>`;
+      if(hr.data?.length>1){
+        const hb=hr.data.map(p=>p.bpm),hMin=Math.min(...hb),hMax=Math.max(...hb);
+        const hStep=Math.max(1,Math.floor(hr.data.length/6));
+        const htl=hr.data.map((p,i)=>(i%hStep===0||i===hr.data.length-1)?`<div style="text-align:center"><div style="color:var(--red);font-weight:700;font-size:.55rem">${p.bpm}</div><div>${p.time}</div></div>`:'<div></div>').join('');
+        html+=`<div class="tc" style="margin-bottom:.8rem"><div class="tl">HR Timeline</div><svg viewBox="0 0 100 50" preserveAspectRatio="none">${svg(hb,100,50,'var(--red)','rgba(255,68,102,.08)',hr.data.map(p=>p.time))}</svg><div style="display:flex;justify-content:space-between;font-size:.5rem;color:var(--dim);margin-top:.15rem">${htl}</div><div style="display:flex;justify-content:space-between;font-size:.55rem;margin-top:.15rem"><span style="color:var(--cyan)">Low: ${hMin}</span><span style="color:var(--dim)">Avg: ${hr.avg}</span><span style="color:var(--mag)">High: ${hMax}</span></div></div>`;
+      }
+
+      // 4. BODY METRICS
+      const extras=[['🫁','Resp Rate',ex.respiratoryRate,'/min'],['🌡️','Wrist Temp',ex.wristTemp,'°F'],['🚶','Walk Speed',ex.walkingSpeed,'mph'],['👣','Step Len',ex.stepLength,'in'],['⚖️','Asymmetry',ex.walkingAsymmetry,'%'],['🫀','VO2',ex.vo2Max,''],['🔋','Basal',ex.basalCalories,'kcal'],['⚡','Total Cal',ex.totalCalories,'kcal']].filter(([,,v])=>v);
+      if(extras.length) html+=`<div style="font-size:.7rem;font-weight:700;color:var(--amber);margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.08em">🧬 Body Metrics</div><div class="grid" style="margin-bottom:.8rem">${extras.map(([i,l,v,u])=>`<div class="mc"><div class="ic">${i}</div><div class="lb">${l}</div><div class="vl" style="color:var(--amber);font-size:1.1rem">${v}<span style="font-size:.5rem"> ${u}</span></div></div>`).join('')}</div>`;
+
+      // 5. WORKOUTS WITH INLINE MAP
+      if(d.workouts.length){
+        html+=`<div style="font-size:.7rem;font-weight:700;color:var(--mag);margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.08em">🏃 Workouts</div>`;
+        html+=d.workouts.map(w=>wCard(w)).join('');
+        html+=`<div id="ddRouteMap" style="margin-top:.5rem;border-radius:10px;overflow:hidden;border:1px solid rgba(0,232,255,.15)"><div id="ddMap" style="height:300px;width:100%"></div></div>`;
+      }
+
+      el.innerHTML=html;
+      el.classList.add('show');
+
+      // Load map for first workout with route
+      if(d.workouts.length && typeof L!=='undefined'){
+        const fw=d.workouts[0];
+        if(fw.id&&!fw.isIndoor){
+          try{
+            const rd=await fetchJSON(`/api/route?id=${encodeURIComponent(fw.id)}`);
+            if(!rd._error&&rd.hasRoute&&rd.route?.length>0){
+              const m=L.map('ddMap',{zoomControl:true,attributionControl:false}).setView([rd.route[0].lat,rd.route[0].lon],15);
+              L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(m);
+              const ll=rd.route.map(p=>[p.lat,p.lon]);
+              L.polyline(ll,{color:'#00e8ff',weight:4,opacity:0.8}).addTo(m);
+              L.circleMarker(ll[0],{radius:7,color:'#00ff88',fillColor:'#00ff88',fillOpacity:1}).addTo(m).bindPopup('Start');
+              L.circleMarker(ll[ll.length-1],{radius:7,color:'#ff00aa',fillColor:'#ff00aa',fillOpacity:1}).addTo(m).bindPopup('Finish');
+              m.fitBounds(L.polyline(ll).getBounds().pad(0.1));
+              setTimeout(()=>m.invalidateSize(),200);
+            }
+          }catch(e){console.error('Day map failed',e);}
+        }
+      }
+
+      el.scrollIntoView({behavior:'smooth'});
+    }
+
+    // ─── SLEEP PAGE ───
+    async function loadSleepPage(){
+      _sleepData=null; // force refresh
+      const d=await fetchJSON('/api/sleep-analytics');
+      if(d._error||d.error){['slOverall','slRecords','slTrends','slWeekly','slMonthly','slAll'].forEach(id=>document.getElementById(id).innerHTML='<div class="nd">No sleep data</div>');return;}
+      _sleepData=d;
+      // Kick off all 7 sleep-tab charts in parallel (each is self-contained)
+      renderSleepHeatmap();renderSleepSchedule();renderStageShare();renderQualityScatter();renderTempAnomaly();renderHRCurve();renderStrainSleep();
+      const o=d.overall;
+
+      // Overview stats
+      document.getElementById('slOverall').innerHTML=[
+        mCard('🌙','Total Nights',o.nights,'tracked','var(--cyan)'),
+        mCard('⏱️','Total Sleep',hm(o.totalSleep),'','var(--purple)'),
+        mCard('😴','Avg Duration',hm(o.avgDuration),'per night','var(--cyan)'),
+        mCard('🌊','Avg Deep',hm(o.avgDeep),'per night','var(--blue)'),
+        mCard('💭','Avg REM',hm(o.avgRem),'per night','var(--mag)'),
+        mCard('🔄','Avg Core',hm(o.avgCore),'per night','var(--teal)'),
+        mCard('⏰','Avg Awake',hm(o.avgAwake),'per night','var(--red)'),
+        mCard('📊','Avg Deep %',o.avgDeepPct+'%','of sleep','var(--blue)'),
+        mCard('📊','Avg REM %',o.avgRemPct+'%','of sleep','var(--mag)'),
+        mCard('🫁','Avg Resp Rate',o.avgRespRate,'/min','var(--cyan)'),
+        mCard('🌡️','Avg Wrist Temp',o.avgWristTemp,'°F','var(--amber)'),
+      ].join('');
+
+      // Records
+      const r=d.records;
+      const recCard=(icon,title,s,val,unit,color)=>`<div class="mc"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:${color}"></div><div class="ic">${icon}</div><div class="lb">${title}</div><div class="vl" style="color:${color};font-size:1.5rem">${val}</div><div class="ut">${unit}</div><div style="font-size:.55rem;color:var(--dim);margin-top:.2rem">${s?.date?s.date.slice(0,10):''}</div></div>`;
+      document.getElementById('slRecords').innerHTML=[
+        recCard('🏆','Best Night',r.bestSleep,hm(r.bestSleep?.duration),'total sleep','var(--green)'),
+        recCard('😟','Worst Night',r.worstSleep,hm(r.worstSleep?.duration),'total sleep','var(--red)'),
+        recCard('🌊','Most Deep',r.mostDeep,hm(r.mostDeep?.deep),'deep sleep','var(--blue)'),
+        recCard('💭','Most REM',r.mostRem,hm(r.mostRem?.rem),'REM sleep','var(--mag)'),
+        recCard('✨','Least Awake',r.leastAwake,hm(r.leastAwake?.awake),'awake time','var(--green)'),
+      ].join('');
+
+      // Nightly trends
+      const t=d.trends;
+      _td=t.map(x=>x.date.slice(5));
+      document.getElementById('slTrends').innerHTML=[
+        tc('Total Sleep',t.map(x=>x.duration),'var(--cyan)','hrs'),
+        tc('Deep Sleep',t.map(x=>x.deep),'var(--blue)','hrs'),
+        tc('REM Sleep',t.map(x=>x.rem),'var(--mag)','hrs'),
+        tc('Core Sleep',t.map(x=>x.core),'var(--teal)','hrs'),
+        tc('Awake Time',t.map(x=>x.awake),'var(--red)','hrs',{lower:true}),
+        tc('Deep %',t.map(x=>x.deepPct),'var(--blue)','%'),
+        tc('REM %',t.map(x=>x.remPct),'var(--mag)','%'),
+        tc('Respiratory Rate',t.map(x=>x.respiratoryRate),'var(--cyan)','/min',{lower:true}),
+        tc('Wrist Temperature',t.map(x=>x.wristTemp),'var(--amber)','°F'),
+        tc('Breathing Disturbances',t.map(x=>x.breathingDisturbances),'var(--red)','count',{lower:true}),
+      ].filter(Boolean).join('');
+
+      // Weekly averages table
+      const ws=d.weeklyStats;
+      document.getElementById('slWeekly').innerHTML=`<table class="wt"><thead><tr><th>Week of</th><th>Nights</th><th>Avg Sleep</th><th>Avg Deep</th><th>Avg REM</th><th>Avg Core</th><th>Avg Awake</th><th>Deep %</th><th>REM %</th></tr></thead><tbody>${ws.map(w=>`<tr><td style="font-weight:600">${w.week}</td><td style="color:var(--cyan);font-weight:700">${w.nights}</td><td style="color:var(--cyan)">${hm(w.avgDuration)}</td><td style="color:var(--blue)">${hm(w.avgDeep)}</td><td style="color:var(--mag)">${hm(w.avgRem)}</td><td style="color:var(--teal)">${hm(w.avgCore)}</td><td style="color:var(--red)">${hm(w.avgAwake)}</td><td>${w.avgDeepPct}%</td><td>${w.avgRemPct}%</td></tr>`).join('')}</tbody></table>`;
+
+      // Monthly averages
+      const ms=d.monthlyStats;
+      document.getElementById('slMonthly').innerHTML=`<table class="wt"><thead><tr><th>Month</th><th>Nights</th><th>Total Sleep</th><th>Avg Sleep</th><th>Avg Deep</th><th>Avg REM</th><th>Avg Core</th></tr></thead><tbody>${ms.map(m=>`<tr><td style="font-weight:600">${m.month}</td><td style="color:var(--cyan);font-weight:700">${m.nights}</td><td>${hm(m.totalSleep)}</td><td style="color:var(--cyan)">${hm(m.avgDuration)}</td><td style="color:var(--blue)">${hm(m.avgDeep)}</td><td style="color:var(--mag)">${hm(m.avgRem)}</td><td style="color:var(--teal)">${hm(m.avgCore)}</td></tr>`).join('')}</tbody></table>`;
+
+      // All nights log
+      const all=d.nights;
+      document.getElementById('slAll').innerHTML='<div class="wg">'+all.map(sleepCard).join('')+'</div>';
+    }
+
+    // ─── MONTHLY REPORT ───
+    let rY,rM;
+    async function loadReport(y,m){
+      const now=new Date();rY=y||now.getFullYear();rM=m||(now.getMonth()+1);
+      const mn=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      document.getElementById('reportNav').innerHTML=`<div class="cal-nav"><button onclick="loadReport(${rM===1?rY-1:rY},${rM===1?12:rM-1})">◀</button><span class="cm">${mn[rM]} ${rY}</span><button onclick="loadReport(${rM===12?rY+1:rY},${rM===12?1:rM+1})">▶</button></div>`;
+
+      const d=await fetchJSON(`/api/monthly-report?year=${rY}&month=${rM}`);
+      if(d._error||!d.daysTracked){document.getElementById('reportContent').innerHTML='<div class="nd">'+(d._error?'Report API unavailable':'No data for this month')+'</div>';return;}
+      const a=d.activity,s=d.sleep,h=d.heartRate,w=d.workouts,f=d.fitness,r=d.records;
+
+      document.getElementById('reportContent').innerHTML=`
+        <div style="text-align:center;margin-bottom:1rem"><span style="font-size:.7rem;color:var(--dim)">${d.daysTracked} days tracked</span></div>
+
+        <div class="sh"><div class="sh-icon" style="background:rgba(0,255,136,.1)">🏃</div><div class="sh-text" style="color:var(--green)">Activity</div><div class="sh-line"></div></div>
+        <div class="grid">
+          ${mCard('👟','Avg Steps',F(a.avgSteps),'/day','var(--green)')}
+          ${mCard('📏','Total Distance',a.totalDistance,'miles','var(--green)')}
+          ${mCard('🔥','Total Calories',F(a.totalCalories),'kcal','var(--mag)')}
+          ${mCard('⏱️','Total Exercise',a.totalExercise,'min','var(--amber)')}
+        </div>
+
+        <div class="sh"><div class="sh-icon" style="background:rgba(0,232,255,.1)">😴</div><div class="sh-text" style="color:var(--cyan)">Sleep</div><div class="sh-line"></div></div>
+        <div class="grid">
+          ${mCard('🌙','Nights Tracked',s.nights,'nights','var(--cyan)')}
+          ${mCard('😴','Avg Duration',hm(s.avgDuration),'per night','var(--cyan)')}
+          ${mCard('🌊','Avg Deep',hm(s.avgDeep),'per night','var(--blue)')}
+          ${mCard('💭','Avg REM',hm(s.avgRem),'per night','var(--mag)')}
+        </div>
+
+        <div class="sh"><div class="sh-icon" style="background:rgba(255,68,102,.1)">❤️</div><div class="sh-text" style="color:var(--red)">Heart Rate</div><div class="sh-line"></div></div>
+        <div class="grid">
+          ${mCard('❤️','Avg Resting HR',h.avgResting,'bpm','var(--red)')}
+          ${mCard('💙','Lowest Resting',h.lowestResting,'bpm','var(--cyan)')}
+          ${mCard('⚠️','Elevated HR Days',h.elevatedDays,'days >1.5σ',h.elevatedDays>5?'var(--red)':'var(--green)')}
+        </div>
+
+        <div class="sh"><div class="sh-icon" style="background:rgba(255,0,170,.1)">🏋️</div><div class="sh-text" style="color:var(--mag)">Workouts</div><div class="sh-line"></div></div>
+        <div class="grid">
+          ${mCard('🏃','Total Workouts',w.count,'sessions','var(--mag)')}
+          ${mCard('⏱️','Total Duration',w.totalDuration,'min','var(--amber)')}
+          ${mCard('📏','Total Distance',w.totalDistance,'miles','var(--green)')}
+          ${mCard('🔥','Total Calories',F(w.totalCalories),'kcal','var(--mag)')}
+          ${mCard('💪','Total Strain',w.totalStrain,'/21 scale','var(--red)')}
+          ${mCard('📊','Avg Strain',w.avgStrain,'/workout','var(--amber)')}
+        </div>
+
+        <div class="sh"><div class="sh-icon" style="background:rgba(0,255,136,.1)">🫀</div><div class="sh-text" style="color:var(--green)">Fitness Trajectory</div><div class="sh-line"></div></div>
+        <div class="grid">
+          ${mCard('📈','VO2 Start',f.vo2Start,'ml/kg·min','var(--dim)')}
+          ${mCard('📊','VO2 End',f.vo2End,'ml/kg·min','var(--green)')}
+          ${mCard(f.vo2Direction==='improving'?'🟢':'🔴','VO2 Change',f.vo2Change>0?'+'+f.vo2Change:f.vo2Change,f.vo2Direction,f.vo2Direction==='improving'?'var(--green)':'var(--red)')}
+        </div>
+
+        <div class="sh"><div class="sh-icon" style="background:rgba(255,170,0,.1)">🏆</div><div class="sh-text" style="color:var(--amber)">Monthly Records</div><div class="sh-line"></div></div>
+        <div class="grid">
+          ${mCard('👟','Best Step Day',F(r.bestStepDay),'steps','var(--green)')}
+          ${mCard('😴','Best Sleep',hm(r.bestSleepNight),'total','var(--cyan)')}
+          ${mCard('⏱️','Longest Workout',r.longestWorkout,'min','var(--amber)')}
+          ${mCard('📏','Farthest Workout',r.farthestWorkout,'miles','var(--green)')}
+        </div>
+      `;
+    }
+
+    // ─── BRIEFING (default landing page) ───
+    // ─── SLEEP TREND CHART (briefing top section) ───────────────────
+    // 30-day sleep duration line + nightly stage stack + day-of-week histogram
+    // + bedtime/wake-time clock. All sourced from /api/sleep-analytics so the
+    // numbers are guaranteed to match the rest of the dashboard.
+    async function renderSleepTrend(){
+      const target=document.getElementById('brSleepTrend');if(!target)return;
+      const d=await fetchJSON('/api/sleep-analytics');
+      if(d._error||!d.trends||d.trends.length<2){target.innerHTML='';return;}
+      const last30=d.trends.slice(-30); // ascending date order
+      const labels=last30.map(n=>n.date.slice(5)); // MM-DD
+      const dur=last30.map(n=>+n.duration||0);
+      const valid=dur.filter(v=>v>0);
+      const avg=valid.length?valid.reduce((a,b)=>a+b,0)/valid.length:0;
+      const need=valid.length?Math.max(7,avg):7; // target line = max(7h, your avg)
+      const W=600,H=110; // SVG viewBox dims
+      const mn=0,mx=Math.max(12,Math.max(...dur)*1.1);
+      // Build polyline + zones
+      const coords=dur.map((v,i)=>({x:+(i/(dur.length-1)*W).toFixed(1),y:+(H-(v-mn)/(mx-mn)*H).toFixed(1),v:v,d:labels[i]}));
+      const pts=coords.map(c=>`${c.x},${c.y}`).join(' ');
+      const targetY=H-(need-mn)/(mx-mn)*H;
+      const avgY=H-(avg-mn)/(mx-mn)*H;
+      // Bars for stage breakdown (stacked: deep/rem/core/awake)
+      const bw=W/last30.length;
+      const stageBars=last30.map((n,i)=>{
+        const tot=(+n.deep||0)+(+n.rem||0)+(+n.core||0)+(+n.awake||0)||1;
+        const bh=Math.max(2,(+n.duration||0)/mx*H);
+        const x=i*bw+1,bwR=bw-2;
+        let y=H,r='';
+        for(const [k,col] of [['deep','var(--blue)'],['rem','var(--mag)'],['core','var(--teal)'],['awake','rgba(255,255,255,.18)']]){
+          const seg=(+n[k]||0)/tot*bh;if(seg<=0)continue;
+          y-=seg;r+=`<rect x="${x}" y="${y}" width="${bwR}" height="${seg}" fill="${col}" rx="1"/>`;
+        }
+        const tip=`${n.date.slice(5,10)}: ${hm(n.duration)} • Deep ${hm(n.deep)} REM ${hm(n.rem)} Core ${hm(n.core)} Awake ${hm(n.awake)}`;
+        return r+`<rect x="${x}" y="0" width="${bwR}" height="${H}" fill="transparent" data-tip="${tip}" onmouseenter="showTT(event,'${tip.replace(/'/g,"\\'")}')" onmousemove="showTT(event,'${tip.replace(/'/g,"\\'")}')" onmouseleave="hideTT()"/>`;
+      }).join('');
+      // Day-of-week histogram
+      const dowNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      const dowSums=[0,0,0,0,0,0,0],dowCnt=[0,0,0,0,0,0,0];
+      for(const n of last30){
+        const d2=new Date(n.date.replace(' ','T').replace(/ ([+-]\d{4})$/,'$1'));
+        const dw=d2.getDay();if(+n.duration>0){dowSums[dw]+=+n.duration;dowCnt[dw]++;}
+      }
+      const dowAvg=dowSums.map((s,i)=>dowCnt[i]?s/dowCnt[i]:0);
+      const dowMx=Math.max(...dowAvg)||1;
+      const dowBars=dowAvg.map((v,i)=>{
+        const h=v/dowMx*60;const isToday=i===new Date().getDay();
+        const col=isToday?'var(--cyan)':'var(--purple)';
+        const tip=`${dowNames[i]} avg: ${hm(v)} (${dowCnt[i]} nights)`;
+        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:crosshair" onmouseenter="showTT(event,'${tip}')" onmousemove="showTT(event,'${tip}')" onmouseleave="hideTT()"><div style="width:100%;background:rgba(255,255,255,.04);height:60px;display:flex;align-items:flex-end;border-radius:3px"><div style="width:100%;background:${col};height:${h}px;border-radius:3px 3px 0 0;transition:height .4s ease"></div></div><div style="font-size:.55rem;color:${isToday?'var(--cyan)':'var(--dim)'};font-weight:${isToday?700:500}">${dowNames[i]}</div><div style="font-size:.5rem;color:var(--dim)">${v>0?hm(v):'—'}</div></div>`;
+      }).join('');
+      // Bedtime/wake clock — average sleep_start and sleep_end times for last 7 nights with single sessions
+      const recent7=last30.filter(n=>n.sleepStart&&n.sleepEnd&&+n.duration>3).slice(-7);
+      const minOfDay=ts=>{try{const t=new Date(ts.replace(' ','T').replace(/ ([+-]\d{4})$/,'$1'));return t.getHours()*60+t.getMinutes()}catch{return null}};
+      const startsM=recent7.map(n=>minOfDay(n.sleepStart)).filter(v=>v!=null).map(m=>m>720?m-1440:m); // wrap evening to negative
+      const endsM=recent7.map(n=>minOfDay(n.sleepEnd)).filter(v=>v!=null);
+      const avgStart=startsM.length?startsM.reduce((a,b)=>a+b,0)/startsM.length:null;
+      const avgEnd=endsM.length?endsM.reduce((a,b)=>a+b,0)/endsM.length:null;
+      const fmtClock=m=>{if(m==null)return '--';let mm=((m%1440)+1440)%1440;const h=Math.floor(mm/60),mn=Math.round(mm%60);const ap=h<12?'AM':'PM';const h12=h%12||12;return `${h12}:${String(mn).padStart(2,'0')} ${ap}`};
+      // Sleep debt badges
+      const last7=dur.slice(-7),last7valid=last7.filter(v=>v>0);
+      const last7avg=last7valid.length?last7valid.reduce((a,b)=>a+b,0)/last7valid.length:0;
+      const debtTrend=last7avg>=avg?'↑':'↓';
+      const trendCol=last7avg>=avg?'var(--green)':'var(--amber)';
+      // Stitch HTML
+      target.innerHTML=`
+        <div style="background:var(--card);border:1px solid rgba(0,232,255,.18);border-radius:10px;padding:.7rem .8rem;margin-bottom:.5rem">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:.3rem">
+            <div style="font-size:.7rem;font-weight:700;color:var(--cyan);letter-spacing:.05em;text-transform:uppercase">📈 Last ${last30.length} Nights</div>
+            <div style="font-size:.6rem;color:var(--dim)">avg <span style="color:var(--cyan);font-weight:700">${hm(avg)}</span> · 7d <span style="color:${trendCol};font-weight:700">${hm(last7avg)} ${debtTrend}</span></div>
+          </div>
+          <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:110px;display:block">
+            <defs><linearGradient id="sleepGrad" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="rgba(0,232,255,.35)"/><stop offset="100%" stop-color="rgba(0,232,255,0)"/></linearGradient></defs>
+            ${stageBars}
+            <line x1="0" y1="${avgY}" x2="${W}" y2="${avgY}" stroke="rgba(170,102,255,.6)" stroke-width=".7" stroke-dasharray="3,3"/>
+            <line x1="0" y1="${targetY}" x2="${W}" y2="${targetY}" stroke="rgba(0,255,136,.5)" stroke-width=".7" stroke-dasharray="2,4"/>
+            <polygon points="0,${H} ${pts} ${W},${H}" fill="url(#sleepGrad)" opacity=".55"/>
+            <polyline points="${pts}" fill="none" stroke="var(--cyan)" stroke-width="1.4" stroke-linejoin="round"/>
+            ${coords.map(c=>c.v>0?`<circle cx="${c.x}" cy="${c.y}" r="1.6" fill="var(--cyan)"/>`:'').join('')}
+          </svg>
+          <div style="display:flex;justify-content:space-between;font-size:.5rem;color:var(--dim);margin-top:.15rem">
+            <span>${labels[0]}</span><span>${labels[Math.floor(labels.length/2)]||''}</span><span>${labels[labels.length-1]}</span>
+          </div>
+          <div style="display:flex;gap:.7rem;justify-content:center;margin-top:.4rem;flex-wrap:wrap;font-size:.55rem">
+            <span><span style="display:inline-block;width:8px;height:8px;background:var(--blue);border-radius:2px;vertical-align:middle"></span> Deep</span>
+            <span><span style="display:inline-block;width:8px;height:8px;background:var(--mag);border-radius:2px;vertical-align:middle"></span> REM</span>
+            <span><span style="display:inline-block;width:8px;height:8px;background:var(--teal);border-radius:2px;vertical-align:middle"></span> Core</span>
+            <span><span style="display:inline-block;width:8px;height:8px;background:rgba(255,255,255,.3);border-radius:2px;vertical-align:middle"></span> Awake</span>
+            <span style="color:var(--purple)">— — avg</span>
+            <span style="color:var(--green)">- - target ${hm(need)}</span>
+          </div>
+        </div>
+        <div class="grid" style="grid-template-columns:1.1fr 1fr;gap:.5rem;margin-bottom:.5rem">
+          <div style="background:var(--card);border:1px solid rgba(170,102,255,.18);border-radius:10px;padding:.6rem .7rem">
+            <div style="font-size:.7rem;font-weight:700;color:var(--purple);letter-spacing:.05em;text-transform:uppercase;margin-bottom:.4rem">📅 Day-of-Week Pattern</div>
+            <div style="display:flex;gap:3px;align-items:flex-end">${dowBars}</div>
+          </div>
+          <div style="background:var(--card);border:1px solid rgba(0,232,255,.18);border-radius:10px;padding:.6rem .7rem;display:flex;flex-direction:column;justify-content:center">
+            <div style="font-size:.7rem;font-weight:700;color:var(--cyan);letter-spacing:.05em;text-transform:uppercase;margin-bottom:.5rem">🌙 Typical Bedtime · 7-night avg</div>
+            <div style="display:flex;justify-content:space-around;align-items:center;text-align:center">
+              <div><div style="font-size:1.4rem;font-weight:800;color:var(--purple);font-family:'Space Grotesk',sans-serif">${fmtClock(avgStart)}</div><div style="font-size:.55rem;color:var(--dim);text-transform:uppercase;letter-spacing:.05em">Bedtime</div></div>
+              <div style="font-size:1.4rem;color:var(--dim)">→</div>
+              <div><div style="font-size:1.4rem;font-weight:800;color:var(--cyan);font-family:'Space Grotesk',sans-serif">${fmtClock(avgEnd)}</div><div style="font-size:.55rem;color:var(--dim);text-transform:uppercase;letter-spacing:.05em">Wake</div></div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // ─── 14-DAY RECOVERY SPARKLINE (briefing top, under gauge) ──────
+    async function renderRecoverySpark(){
+      const target=document.getElementById('brRecoverySpark');if(!target)return;
+      const d=await fetchJSON('/api/recovery-history?days=14');
+      if(d._error||!d.days||d.days.length<2){target.innerHTML='';return;}
+      const days=d.days,W=400,H=44;
+      const scores=days.map(x=>x.score);
+      const mn=0,mx=100;
+      const pts=scores.map((v,i)=>`${(i/(scores.length-1)*W).toFixed(1)},${(H-v/mx*H).toFixed(1)}`).join(' ');
+      const last=days[days.length-1].score;
+      const lastCol=last>=67?'var(--green)':last>=34?'var(--amber)':'var(--red)';
+      const avg14=Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
+      target.innerHTML=`<div style="background:var(--card);border:1px solid rgba(0,255,136,.18);border-radius:8px;padding:.4rem .6rem;display:flex;align-items:center;gap:.6rem">
+        <div style="font-size:.6rem;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;flex-shrink:0">14-day recovery</div>
+        <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="flex:1;height:30px;display:block">
+          <line x1="0" y1="${H*(1-67/mx)}" x2="${W}" y2="${H*(1-67/mx)}" stroke="rgba(0,255,136,.3)" stroke-width=".5" stroke-dasharray="2,3"/>
+          <line x1="0" y1="${H*(1-34/mx)}" x2="${W}" y2="${H*(1-34/mx)}" stroke="rgba(255,68,102,.3)" stroke-width=".5" stroke-dasharray="2,3"/>
+          <polyline points="${pts}" fill="none" stroke="${lastCol}" stroke-width="1.2"/>
+          ${days.map((x,i)=>{const cx=(i/(scores.length-1)*W).toFixed(1),cy=(H-x.score/mx*H).toFixed(1);const c=x.score>=67?'var(--green)':x.score>=34?'var(--amber)':'var(--red)';const tip=`${x.date} → ${x.score}/100 (sleep ${x.sleep}, hr ${x.hr}, resp ${x.resp}, temp ${x.temp})`;return `<circle cx="${cx}" cy="${cy}" r="2" fill="${c}" data-tip="${tip}" onmouseenter="showTT(event,'${tip}')" onmousemove="showTT(event,'${tip}')" onmouseleave="hideTT()"/>`;}).join('')}
+        </svg>
+        <div style="text-align:right;flex-shrink:0"><div style="font-size:1.1rem;font-weight:800;color:${lastCol};font-family:'Space Grotesk',sans-serif">${last}</div><div style="font-size:.5rem;color:var(--dim)">avg ${avg14}</div></div>
+      </div>`;
+    }
+
+    // ─── SLEEP TAB CHARTS (all 7) ───────────────────────────────────
+    let _sleepData=null;
+    async function ensureSleepData(){
+      if(_sleepData)return _sleepData;
+      const d=await fetchJSON('/api/sleep-analytics');
+      if(d._error||!d.trends)return null;
+      _sleepData=d;return d;
+    }
+
+    // 1. 12-MONTH HEATMAP (GitHub contributions style)
+    async function renderSleepHeatmap(){
+      const target=document.getElementById('slHeatmap');if(!target)return;
+      const d=await ensureSleepData();if(!d)return;
+      // Build a map of date → duration; backfill last 365 days
+      const byDate=new Map(d.trends.map(n=>[n.date.slice(0,10),+n.duration||0]));
+      const today=new Date();const start=new Date(today);start.setDate(today.getDate()-364);
+      // Start from Sunday before start for clean week columns
+      const startDay=start.getDay();const gridStart=new Date(start);gridStart.setDate(start.getDate()-startDay);
+      const weeks=[];let cur=new Date(gridStart);
+      while(cur<=today){
+        const week=[];
+        for(let i=0;i<7;i++){
+          const ds=`${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}-${String(cur.getDate()).padStart(2,'0')}`;
+          const inRange=cur>=start&&cur<=today;
+          week.push({date:ds,dur:byDate.get(ds)||0,inRange});
+          cur.setDate(cur.getDate()+1);
+        }
+        weeks.push(week);
+      }
+      // Color scale: 0=empty, 1-5=red, 5-6.5=amber, 6.5-7.5=cyan, 7.5+=green
+      const colorFor=h=>{if(h<=0)return'rgba(255,255,255,.05)';if(h<5)return'#ff4466';if(h<6.5)return'#ffaa00';if(h<7.5)return'#00e8ff';return'#00ff88'};
+      const cell=12,gap=2;
+      const W=weeks.length*(cell+gap),H=7*(cell+gap);
+      const monthLabels=[];let lastMonth=-1;
+      weeks.forEach((w,i)=>{const m=new Date(w[0].date+'T00:00').getMonth();if(m!==lastMonth){monthLabels.push({x:i*(cell+gap),m:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m]});lastMonth=m;}});
+      const cells=weeks.map((w,wi)=>w.map((d,di)=>{
+        if(!d.inRange)return '';
+        const x=wi*(cell+gap),y=di*(cell+gap);
+        const tip=d.dur>0?`${d.date}: ${hm(d.dur)}`:`${d.date}: no data`;
+        return `<rect x="${x}" y="${y}" width="${cell}" height="${cell}" rx="2" fill="${colorFor(d.dur)}" data-tip="${tip}" onmouseenter="showTT(event,'${tip}')" onmousemove="showTT(event,'${tip}')" onmouseleave="hideTT()" style="cursor:crosshair"/>`;
+      }).join('')).join('');
+      const validDurs=d.trends.map(n=>+n.duration).filter(v=>v>0);
+      const avg=validDurs.length?validDurs.reduce((a,b)=>a+b,0)/validDurs.length:0;
+      target.innerHTML=`<div style="background:var(--card);border:1px solid rgba(0,255,136,.18);border-radius:10px;padding:.7rem;overflow:auto">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;font-size:.65rem;color:var(--dim)">
+          <span>${d.trends.length} nights tracked · avg ${hm(avg)}</span>
+          <span style="display:flex;gap:.4rem;align-items:center">Less <span style="display:inline-block;width:10px;height:10px;background:rgba(255,255,255,.05);border-radius:2px"></span><span style="display:inline-block;width:10px;height:10px;background:#ff4466;border-radius:2px"></span><span style="display:inline-block;width:10px;height:10px;background:#ffaa00;border-radius:2px"></span><span style="display:inline-block;width:10px;height:10px;background:#00e8ff;border-radius:2px"></span><span style="display:inline-block;width:10px;height:10px;background:#00ff88;border-radius:2px"></span> More</span>
+        </div>
+        <svg viewBox="-30 -16 ${W+30} ${H+20}" style="width:100%;min-width:560px;display:block">
+          ${monthLabels.map(l=>`<text x="${l.x}" y="-4" font-size="9" fill="var(--dim)">${l.m}</text>`).join('')}
+          ${['','Mon','','Wed','','Fri',''].map((d,i)=>d?`<text x="-4" y="${i*(cell+gap)+10}" font-size="8" fill="var(--dim)" text-anchor="end">${d}</text>`:'').join('')}
+          ${cells}
+        </svg>
+      </div>`;
+    }
+
+    // 2. SLEEP SCHEDULE GANTT (last 21 nights)
+    async function renderSleepSchedule(){
+      const target=document.getElementById('slSchedule');if(!target)return;
+      const d=await ensureSleepData();if(!d)return;
+      const nights=d.trends.slice(-21).filter(n=>n.sleepStart&&n.sleepEnd);
+      if(nights.length<2){target.innerHTML='<div class="nd">Not enough scheduled nights</div>';return;}
+      // X axis: hours of day from 6PM (-360 min) to 6PM next day (+1080 min) — 24h span
+      const xMin=-360,xMax=1080,xRange=xMax-xMin;
+      const minOf=ts=>{const t=new Date(ts.replace(' ','T').replace(/ ([+-]\d{4})$/,'$1'));return t.getHours()*60+t.getMinutes()};
+      // Bar geometry
+      const W=600,rowH=14,gap=3,H=nights.length*(rowH+gap)+30;
+      const xFor=m=>((m-xMin)/xRange)*W;
+      const bars=nights.map((n,i)=>{
+        let s=minOf(n.sleepStart),e=minOf(n.sleepEnd);
+        // wrap evening starts to negative (so 22:00 → -120 min before midnight)
+        if(s>720)s-=1440;
+        if(e<s)e+=1440;
+        const x=xFor(s),w=Math.max(2,xFor(e)-xFor(s));
+        const y=i*(rowH+gap);
+        const dateLabel=n.date.slice(5,10);
+        const tip=`${dateLabel}: ${dateLabel.slice(0,2)}/${dateLabel.slice(3)} sleep ${hm(n.duration)}`;
+        return `<text x="-3" y="${y+rowH-3}" font-size="8" fill="var(--dim)" text-anchor="end">${dateLabel}</text>
+                <rect x="${x}" y="${y}" width="${w}" height="${rowH}" rx="3" fill="var(--cyan)" opacity=".7" data-tip="${tip}" onmouseenter="showTT(event,'${tip}')" onmousemove="showTT(event,'${tip}')" onmouseleave="hideTT()"/>`;
+      }).join('');
+      // Hour grid lines (every 3 hours)
+      const grid=[],labels=[];
+      for(let m=xMin;m<=xMax;m+=180){
+        const x=xFor(m);
+        let h=((m%1440)+1440)%1440/60;
+        const lbl=`${(Math.floor(h)%12||12)}${h<12?'a':'p'}`;
+        grid.push(`<line x1="${x}" y1="0" x2="${x}" y2="${nights.length*(rowH+gap)}" stroke="rgba(255,255,255,.05)"/>`);
+        labels.push(`<text x="${x}" y="${nights.length*(rowH+gap)+12}" font-size="8" fill="var(--dim)" text-anchor="middle">${lbl}</text>`);
+      }
+      target.innerHTML=`<div style="background:var(--card);border:1px solid rgba(170,102,255,.18);border-radius:10px;padding:.7rem;overflow-x:auto">
+        <svg viewBox="-30 0 ${W+40} ${H}" style="width:100%;min-width:480px;display:block">
+          ${grid.join('')}${bars}${labels.join('')}
+        </svg>
+        <div style="text-align:center;font-size:.55rem;color:var(--dim);margin-top:.2rem">x-axis: time of day (6PM previous day → 6PM next day)</div>
+      </div>`;
+    }
+
+    // 3. STAGE COMPOSITION ROLLING 7-DAY (% of sleep that's deep/REM/core/awake)
+    async function renderStageShare(){
+      const target=document.getElementById('slStageShare');if(!target)return;
+      const d=await ensureSleepData();if(!d)return;
+      const nights=d.trends.filter(n=>+n.duration>0).slice(-60); // last 60 nights
+      if(nights.length<7){target.innerHTML='<div class="nd">Need at least 7 nights for rolling avg</div>';return;}
+      // Compute rolling 7-day percentages
+      const series=[];
+      for(let i=6;i<nights.length;i++){
+        const win=nights.slice(i-6,i+1);
+        const totD=win.reduce((s,n)=>s+(+n.deep||0),0);
+        const totR=win.reduce((s,n)=>s+(+n.rem||0),0);
+        const totC=win.reduce((s,n)=>s+(+n.core||0),0);
+        const totA=win.reduce((s,n)=>s+(+n.awake||0),0);
+        const tot=totD+totR+totC+totA||1;
+        series.push({date:nights[i].date.slice(5,10),deep:totD/tot*100,rem:totR/tot*100,core:totC/tot*100,awake:totA/tot*100});
+      }
+      const W=600,H=140,bw=W/series.length;
+      // Stacked area paths
+      const accum=series.map(s=>({x:0,d:s.deep,r:s.rem,c:s.core,a:s.awake}));
+      const xFor=i=>(i/(series.length-1))*W;
+      const bars=series.map((s,i)=>{
+        const x=i*bw;let y=H;
+        let r='';
+        for(const [v,col] of [[s.deep,'#3a7afe'],[s.rem,'#ff44aa'],[s.core,'#33ddcc'],[s.awake,'rgba(255,255,255,.18)']]){
+          const h=v/100*H;y-=h;
+          r+=`<rect x="${x}" y="${y}" width="${bw+.5}" height="${h}"  fill="${col}" opacity=".88"/>`;
+        }
+        const tip=`${s.date}: Deep ${Math.round(s.deep)}% · REM ${Math.round(s.rem)}% · Core ${Math.round(s.core)}% · Awake ${Math.round(s.awake)}%`;
+        r+=`<rect x="${x}" y="0" width="${bw+.5}" height="${H}" fill="transparent" data-tip="${tip}" onmouseenter="showTT(event,'${tip}')" onmousemove="showTT(event,'${tip}')" onmouseleave="hideTT()"/>`;
+        return r;
+      }).join('');
+      // Y axis: 25/50/75 lines
+      const yLines=[25,50,75].map(v=>`<line x1="0" y1="${H*(1-v/100)}" x2="${W}" y2="${H*(1-v/100)}" stroke="rgba(255,255,255,.1)" stroke-dasharray="2,3"/><text x="${W-2}" y="${H*(1-v/100)-2}" font-size="8" fill="var(--dim)" text-anchor="end">${v}%</text>`).join('');
+      target.innerHTML=`<div style="background:var(--card);border:1px solid rgba(0,232,255,.18);border-radius:10px;padding:.7rem">
+        <svg viewBox="0 0 ${W} ${H+18}" preserveAspectRatio="none" style="width:100%;height:160px;display:block">
+          ${bars}${yLines}
+          <text x="0" y="${H+12}" font-size="8" fill="var(--dim)">${series[0].date}</text>
+          <text x="${W}" y="${H+12}" font-size="8" fill="var(--dim)" text-anchor="end">${series[series.length-1].date}</text>
+        </svg>
+        <div style="display:flex;gap:.7rem;justify-content:center;font-size:.55rem;margin-top:.3rem;flex-wrap:wrap">
+          <span><span style="display:inline-block;width:8px;height:8px;background:#3a7afe;border-radius:2px"></span> Deep</span>
+          <span><span style="display:inline-block;width:8px;height:8px;background:#ff44aa;border-radius:2px"></span> REM</span>
+          <span><span style="display:inline-block;width:8px;height:8px;background:#33ddcc;border-radius:2px"></span> Core</span>
+          <span><span style="display:inline-block;width:8px;height:8px;background:rgba(255,255,255,.3);border-radius:2px"></span> Awake</span>
+        </div>
+      </div>`;
+    }
+
+    // 4. QUALITY VS DURATION SCATTER + Pearson r
+    async function renderQualityScatter(){
+      const target=document.getElementById('slQualityScatter');if(!target)return;
+      const d=await ensureSleepData();if(!d)return;
+      // Quality proxy: deep% + rem% (composition score). Could also use efficiency.
+      const points=d.trends.filter(n=>+n.duration>0).map(n=>{
+        const dur=+n.duration,deepP=(+n.deep||0)/dur*100,remP=(+n.rem||0)/dur*100;
+        const quality=Math.round(Math.min(100,deepP*1.7+remP*1.2+(dur>=7?20:dur*2.8)));
+        return {x:dur,y:quality,d:n.date.slice(5,10)};
+      });
+      if(points.length<5){target.innerHTML='<div class="nd">Need 5+ nights for scatter</div>';return;}
+      // Pearson r
+      const n=points.length;const sumX=points.reduce((s,p)=>s+p.x,0),sumY=points.reduce((s,p)=>s+p.y,0);
+      const meanX=sumX/n,meanY=sumY/n;
+      const num=points.reduce((s,p)=>s+(p.x-meanX)*(p.y-meanY),0);
+      const denX=Math.sqrt(points.reduce((s,p)=>s+(p.x-meanX)**2,0));
+      const denY=Math.sqrt(points.reduce((s,p)=>s+(p.y-meanY)**2,0));
+      const r=denX&&denY?(num/(denX*denY)):0;
+      const rStr=r.toFixed(2),rCol=Math.abs(r)>=.5?'var(--green)':Math.abs(r)>=.3?'var(--amber)':'var(--dim)';
+      const W=600,H=180,pad=20;
+      const xMin=Math.min(...points.map(p=>p.x))*.9||0,xMax=Math.max(...points.map(p=>p.x))*1.05||10;
+      const yMin=0,yMax=100;
+      const xFor=v=>pad+((v-xMin)/(xMax-xMin))*(W-2*pad);
+      const yFor=v=>H-pad-((v-yMin)/(yMax-yMin))*(H-2*pad);
+      const dots=points.map(p=>{
+        const c=p.y>=70?'var(--green)':p.y>=50?'var(--amber)':'var(--red)';
+        const tip=`${p.d}: ${hm(p.x)} → quality ${p.y}`;
+        return `<circle cx="${xFor(p.x).toFixed(1)}" cy="${yFor(p.y).toFixed(1)}" r="3.5" fill="${c}" opacity=".75" stroke="${c}" stroke-width=".5" data-tip="${tip}" onmouseenter="showTT(event,'${tip}')" onmousemove="showTT(event,'${tip}')" onmouseleave="hideTT()"/>`;
+      }).join('');
+      // Best-fit line: y = slope*x + intercept
+      const slope=denX?num/(denX*denX):0;const intercept=meanY-slope*meanX;
+      const lx1=xMin,lx2=xMax;const ly1=slope*lx1+intercept,ly2=slope*lx2+intercept;
+      const lyc1=Math.max(yMin,Math.min(yMax,ly1)),lyc2=Math.max(yMin,Math.min(yMax,ly2));
+      // Axis labels
+      const xTicks=[];for(let v=Math.ceil(xMin);v<=Math.floor(xMax);v++)xTicks.push(v);
+      target.innerHTML=`<div style="background:var(--card);border:1px solid rgba(255,0,170,.18);border-radius:10px;padding:.7rem">
+        <div style="display:flex;justify-content:space-between;font-size:.7rem;margin-bottom:.3rem">
+          <span style="color:var(--mag);font-weight:700;text-transform:uppercase;letter-spacing:.05em">${points.length} nights · Pearson r = <span style="color:${rCol};font-size:.85rem">${rStr}</span></span>
+          <span style="color:var(--dim)">${Math.abs(r)>=.5?'strong':Math.abs(r)>=.3?'moderate':'weak'} ${r>0?'positive':r<0?'negative':'no'} correlation</span>
+        </div>
+        <svg viewBox="0 0 ${W} ${H+10}" preserveAspectRatio="none" style="width:100%;height:200px;display:block">
+          <line x1="${pad}" y1="${yFor(70)}" x2="${W-pad}" y2="${yFor(70)}" stroke="rgba(0,255,136,.15)" stroke-dasharray="2,3"/>
+          <line x1="${xFor(7.5)}" y1="${pad}" x2="${xFor(7.5)}" y2="${H-pad}" stroke="rgba(0,232,255,.15)" stroke-dasharray="2,3"/>
+          <line x1="${xFor(lx1)}" y1="${yFor(lyc1)}" x2="${xFor(lx2)}" y2="${yFor(lyc2)}" stroke="${rCol}" stroke-width="1.2" opacity=".7"/>
+          ${dots}
+          ${xTicks.map(v=>`<text x="${xFor(v)}" y="${H-4}" font-size="8" fill="var(--dim)" text-anchor="middle">${v}h</text>`).join('')}
+          <text x="2" y="${yFor(0)+3}" font-size="8" fill="var(--dim)">0</text>
+          <text x="2" y="${yFor(100)+3}" font-size="8" fill="var(--dim)">100</text>
+          <text x="${W/2}" y="${H+8}" font-size="8" fill="var(--dim)" text-anchor="middle">duration (h)</text>
+        </svg>
+      </div>`;
+    }
+
+    // 5. WRIST TEMP ANOMALY BAND
+    async function renderTempAnomaly(){
+      const target=document.getElementById('slTempAnom');if(!target)return;
+      const d=await ensureSleepData();if(!d)return;
+      const samples=d.trends.filter(n=>+n.wristTemp>0).slice(-60).map(n=>({date:n.date.slice(5,10),v:+n.wristTemp}));
+      if(samples.length<5){target.innerHTML='<div class="nd">Not enough wrist-temp samples</div>';return;}
+      // Rolling 14-day mean ± 2σ
+      const W=600,H=140,pad=18;
+      const window=14;
+      const ann=samples.map((s,i)=>{
+        const win=samples.slice(Math.max(0,i-window+1),i+1).map(x=>x.v);
+        const mean=win.reduce((a,b)=>a+b,0)/win.length;
+        const sd=Math.sqrt(win.reduce((a,b)=>a+(b-mean)**2,0)/win.length);
+        return {...s,mean,upper:mean+2*sd,lower:mean-2*sd};
+      });
+      const all=ann.flatMap(s=>[s.v,s.upper,s.lower]);
+      const yMin=Math.min(...all)-.3,yMax=Math.max(...all)+.3;
+      const xFor=i=>pad+(i/(ann.length-1))*(W-2*pad);
+      const yFor=v=>H-pad-((v-yMin)/(yMax-yMin))*(H-2*pad);
+      // Band polygon
+      const bandPts=[...ann.map((s,i)=>`${xFor(i).toFixed(1)},${yFor(s.upper).toFixed(1)}`),...ann.slice().reverse().map((s,i)=>`${xFor(ann.length-1-i).toFixed(1)},${yFor(s.lower).toFixed(1)}`)].join(' ');
+      const meanLine=ann.map((s,i)=>`${xFor(i).toFixed(1)},${yFor(s.mean).toFixed(1)}`).join(' ');
+      const valLine=ann.map((s,i)=>`${xFor(i).toFixed(1)},${yFor(s.v).toFixed(1)}`).join(' ');
+      const dots=ann.map((s,i)=>{
+        const inBand=s.v>=s.lower&&s.v<=s.upper;
+        const c=inBand?'var(--amber)':'var(--red)';
+        const tip=`${s.date}: ${s.v.toFixed(1)}°F (band ${s.lower.toFixed(1)}–${s.upper.toFixed(1)})${inBand?'':' ⚠ ANOMALY'}`;
+        return `<circle cx="${xFor(i).toFixed(1)}" cy="${yFor(s.v).toFixed(1)}" r="2.2" fill="${c}" data-tip="${tip}" onmouseenter="showTT(event,'${tip}')" onmousemove="showTT(event,'${tip}')" onmouseleave="hideTT()"/>`;
+      }).join('');
+      target.innerHTML=`<div style="background:var(--card);border:1px solid rgba(255,170,0,.18);border-radius:10px;padding:.7rem">
+        <svg viewBox="0 0 ${W} ${H+12}" preserveAspectRatio="none" style="width:100%;height:160px;display:block">
+          <polygon points="${bandPts}" fill="rgba(255,170,0,.12)"/>
+          <polyline points="${meanLine}" fill="none" stroke="rgba(255,170,0,.4)" stroke-width=".8" stroke-dasharray="3,2"/>
+          <polyline points="${valLine}" fill="none" stroke="var(--amber)" stroke-width="1.2"/>
+          ${dots}
+          <text x="2" y="${yFor(yMin)}" font-size="8" fill="var(--dim)">${yMin.toFixed(1)}°</text>
+          <text x="2" y="${yFor(yMax)+8}" font-size="8" fill="var(--dim)">${yMax.toFixed(1)}°</text>
+          <text x="${W/2}" y="${H+10}" font-size="8" fill="var(--dim)" text-anchor="middle">${ann.length} nights · 14-day rolling band ±2σ</text>
+        </svg>
+      </div>`;
+    }
+
+    // 6. HR DURING SLEEP — selected night, with stage overlay
+    let _hrCurveDate=null;
+    async function renderHRCurve(date){
+      const target=document.getElementById('slHRCurve');if(!target)return;
+      const d2=await ensureSleepData();if(!d2)return;
+      // Date selector dropdown
+      const opts=d2.trends.slice(-30).reverse().map(n=>{const ds=n.date.slice(0,10);return `<option value="${ds}"${ds===date?' selected':''}>${ds} (${hm(n.duration)})</option>`}).join('');
+      const initialDate=date||d2.trends[d2.trends.length-1].date.slice(0,10);
+      _hrCurveDate=initialDate;
+      const d=await fetchJSON(`/api/sleep-hr?date=${initialDate}`);
+      let body='<div class="nd">No HR data within sleep window</div>';
+      if(!d._error&&d.hrSamples&&d.hrSamples.length>2){
+        const W=620,H=160,pad=20;
+        const sleepStartT=new Date(d.sleepStart.replace(' ','T').replace(/ ([+-]\d{4})$/,'$1')).getTime();
+        const sleepEndT=new Date(d.sleepEnd.replace(' ','T').replace(/ ([+-]\d{4})$/,'$1')).getTime();
+        const span=sleepEndT-sleepStartT||1;
+        const xFor=t=>pad+((new Date(t.replace(' ','T').replace(/ ([+-]\d{4})$/,'$1')).getTime()-sleepStartT)/span)*(W-2*pad);
+        const bpms=d.hrSamples.map(s=>s.bpm).filter(b=>b>0);
+        const yMin=Math.min(...bpms)-5,yMax=Math.max(...bpms)+5;
+        const yFor=v=>H-pad-((v-yMin)/(yMax-yMin))*(H-2*pad);
+        // Stage windows as background bands
+        const stages=d.stageWindows||[];
+        // Use the longest stage window to derive shaded zones (it's the outer)
+        const longest=stages.sort((a,b)=>b.total-a.total)[0];
+        const bands=longest?(()=>{
+          // We don't have per-stage timestamps from HAE — best we can do is split proportionally across the window
+          const tot=longest.total||1;const segs=[['core','#33ddcc',longest.core],['deep','#3a7afe',longest.deep],['rem','#ff44aa',longest.rem],['awake','rgba(255,255,255,.08)',longest.awake]];
+          let cx=pad,total=segs.reduce((s,x)=>s+x[2],0)||1;let r='';
+          for(const [k,c,h] of segs){const w=(h/total)*(W-2*pad);r+=`<rect x="${cx}" y="${pad}" width="${w}" height="${H-2*pad}" fill="${c}" opacity=".10"/>`;cx+=w;}
+          return r;
+        })():'';
+        const linePts=d.hrSamples.map(s=>`${xFor(s.t).toFixed(1)},${yFor(s.bpm).toFixed(1)}`).join(' ');
+        const fmtT=ts=>{try{const t=new Date(ts.replace(' ','T').replace(/ ([+-]\d{4})$/,'$1'));return t.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}catch{return ts}};
+        const dots=d.hrSamples.filter((_,i)=>i%Math.max(1,Math.floor(d.hrSamples.length/40))===0).map(s=>{
+          const tip=`${fmtT(s.t)}: ${s.bpm} bpm`;
+          return `<circle cx="${xFor(s.t).toFixed(1)}" cy="${yFor(s.bpm).toFixed(1)}" r="1.8" fill="var(--red)" data-tip="${tip}" onmouseenter="showTT(event,'${tip}')" onmousemove="showTT(event,'${tip}')" onmouseleave="hideTT()"/>`;
+        }).join('');
+        const minBpm=Math.min(...bpms),maxBpm=Math.max(...bpms),avgBpm=Math.round(bpms.reduce((a,b)=>a+b,0)/bpms.length);
+        body=`<div style="display:flex;justify-content:space-between;font-size:.65rem;margin-bottom:.3rem">
+          <span style="color:var(--dim)">${fmtT(d.sleepStart)} → ${fmtT(d.sleepEnd)} · ${hm(d.duration)} · ${d.hrSamples.length} HR samples</span>
+          <span><span style="color:var(--cyan)">low ${minBpm}</span> · <span style="color:var(--dim)">avg ${avgBpm}</span> · <span style="color:var(--mag)">peak ${maxBpm}</span></span>
+        </div>
+        <svg viewBox="0 0 ${W} ${H+8}" preserveAspectRatio="none" style="width:100%;height:180px;display:block">
+          ${bands}
+          <polyline points="${linePts}" fill="none" stroke="var(--red)" stroke-width="1.2"/>
+          ${dots}
+          <text x="2" y="${yFor(yMin)+3}" font-size="8" fill="var(--dim)">${Math.round(yMin)}</text>
+          <text x="2" y="${yFor(yMax)+8}" font-size="8" fill="var(--dim)">${Math.round(yMax)}</text>
+        </svg>
+        <div style="display:flex;gap:.7rem;justify-content:center;font-size:.55rem;margin-top:.3rem;flex-wrap:wrap">
+          <span><span style="display:inline-block;width:8px;height:8px;background:#3a7afe;opacity:.4;border-radius:2px"></span> Deep</span>
+          <span><span style="display:inline-block;width:8px;height:8px;background:#ff44aa;opacity:.4;border-radius:2px"></span> REM</span>
+          <span><span style="display:inline-block;width:8px;height:8px;background:#33ddcc;opacity:.4;border-radius:2px"></span> Core</span>
+          <span style="color:var(--dim)">stages shaded proportionally (HAE doesn't expose per-stage timestamps)</span>
+        </div>`;
+      }
+      target.innerHTML=`<div style="background:var(--card);border:1px solid rgba(255,68,102,.18);border-radius:10px;padding:.7rem">
+        <div style="margin-bottom:.4rem"><label style="font-size:.65rem;color:var(--dim);margin-right:.3rem">Night:</label><select onchange="renderHRCurve(this.value)" style="background:var(--card);color:var(--text);border:1px solid var(--cyan);border-radius:4px;padding:.2rem .4rem;font-size:.65rem">${opts}</select></div>
+        ${body}
+      </div>`;
+    }
+
+    // 7. WORKOUT STRAIN × NEXT-NIGHT SLEEP
+    async function renderStrainSleep(){
+      const target=document.getElementById('slStrainSleep');if(!target)return;
+      const [wd,sd]=await Promise.all([fetchJSON('/api/workout-analytics'),ensureSleepData()]);
+      if(wd._error||!sd){target.innerHTML='<div class="nd">No workout data</div>';return;}
+      // Build sleep map by date
+      const sleepByDate=new Map(sd.trends.map(n=>[n.date.slice(0,10),+n.duration||0]));
+      // Pair each workout with next-night sleep
+      const pairs=[];
+      for(const w of wd.trends||[]){
+        const d=new Date(w.date+'T00:00');d.setDate(d.getDate()+1);
+        const nextDay=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        const sl=sleepByDate.get(nextDay);
+        if(sl&&sl>0&&w.strain>0)pairs.push({strain:+w.strain,sleep:sl,date:w.date,nextDate:nextDay});
+      }
+      if(pairs.length<5){target.innerHTML='<div class="nd">Need 5+ paired workout/sleep nights</div>';return;}
+      // Pearson r
+      const n=pairs.length;const mx=pairs.reduce((s,p)=>s+p.strain,0)/n,my=pairs.reduce((s,p)=>s+p.sleep,0)/n;
+      const num=pairs.reduce((s,p)=>s+(p.strain-mx)*(p.sleep-my),0);
+      const denX=Math.sqrt(pairs.reduce((s,p)=>s+(p.strain-mx)**2,0));
+      const denY=Math.sqrt(pairs.reduce((s,p)=>s+(p.sleep-my)**2,0));
+      const r=denX&&denY?num/(denX*denY):0;
+      const W=600,H=180,pad=22;
+      const xMin=0,xMax=Math.max(...pairs.map(p=>p.strain))*1.1||21;
+      const yMin=Math.min(...pairs.map(p=>p.sleep))*.9||0,yMax=Math.max(...pairs.map(p=>p.sleep))*1.1||10;
+      const xFor=v=>pad+((v-xMin)/(xMax-xMin))*(W-2*pad);
+      const yFor=v=>H-pad-((v-yMin)/(yMax-yMin))*(H-2*pad);
+      const dots=pairs.map(p=>{
+        const tip=`${p.date} workout: strain ${p.strain.toFixed(1)} → ${p.nextDate} sleep ${hm(p.sleep)}`;
+        const c=p.sleep>=7?'var(--green)':p.sleep>=6?'var(--amber)':'var(--red)';
+        return `<circle cx="${xFor(p.strain).toFixed(1)}" cy="${yFor(p.sleep).toFixed(1)}" r="3" fill="${c}" opacity=".75" data-tip="${tip}" onmouseenter="showTT(event,'${tip}')" onmousemove="showTT(event,'${tip}')" onmouseleave="hideTT()"/>`;
+      }).join('');
+      // Trend line
+      const slope=denX?num/(denX*denX):0;const intercept=my-slope*mx;
+      const lyc1=Math.max(yMin,Math.min(yMax,slope*xMin+intercept));const lyc2=Math.max(yMin,Math.min(yMax,slope*xMax+intercept));
+      const rCol=Math.abs(r)>=.4?(r>0?'var(--green)':'var(--red)'):'var(--dim)';
+      target.innerHTML=`<div style="background:var(--card);border:1px solid rgba(0,255,136,.18);border-radius:10px;padding:.7rem">
+        <div style="display:flex;justify-content:space-between;font-size:.7rem;margin-bottom:.3rem">
+          <span style="color:var(--green);font-weight:700;text-transform:uppercase;letter-spacing:.05em">${pairs.length} workout→next-night pairs</span>
+          <span>Pearson r = <span style="color:${rCol};font-weight:700">${r.toFixed(2)}</span> · ${r>.2?'more strain → MORE sleep':r<-.2?'more strain → LESS sleep':'no clear effect'}</span>
+        </div>
+        <svg viewBox="0 0 ${W} ${H+10}" preserveAspectRatio="none" style="width:100%;height:200px;display:block">
+          <line x1="${xFor(xMin)}" y1="${yFor(lyc1)}" x2="${xFor(xMax)}" y2="${yFor(lyc2)}" stroke="${rCol}" stroke-width="1" opacity=".6"/>
+          ${dots}
+          <text x="${W/2}" y="${H+8}" font-size="8" fill="var(--dim)" text-anchor="middle">workout strain (0–21) →</text>
+          <text x="2" y="${pad-2}" font-size="8" fill="var(--dim)">${yMax.toFixed(1)}h</text>
+          <text x="2" y="${H-pad+8}" font-size="8" fill="var(--dim)">${yMin.toFixed(1)}h</text>
+        </svg>
+      </div>`;
+    }
+
+    async function loadBriefing(){
+      const d=await fetchJSON('/api/briefing');
+      if(d._error){const el=document.getElementById('recoveryGauge');if(el)el.innerHTML='<div class="nd">Briefing API unavailable ('+d._error+')</div>';return;}
+      const r=d.recovery;
+
+      // Recovery gauge (SVG arc)
+      const score=r.score;const color=r.level==='green'?'var(--green)':r.level==='yellow'?'var(--amber)':'var(--red)';
+      const radius=80,circ=2*Math.PI*radius,offset=circ*(1-score/100);
+      const c=r.components;
+      document.getElementById('recoveryGauge').innerHTML=`<div class="rg"><svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="${radius}" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="14"/><circle cx="100" cy="100" r="${radius}" fill="none" stroke="${color}" stroke-width="14" stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${offset}" transform="rotate(-90 100 100)" style="transition:stroke-dashoffset 1s ease"/><text x="100" y="90" text-anchor="middle" font-family="'Space Grotesk',sans-serif" font-size="48" font-weight="900" fill="${color}">${score}</text><text x="100" y="115" text-anchor="middle" font-size="11" fill="var(--dim)" font-weight="600">RECOVERY SCORE</text></svg><div class="rg-rec">${r.recommendation}</div><div class="rg-components"><div class="rg-comp"><div class="rc-label">Heart Rate</div><div class="rc-score" style="color:${c.heartRate.score>=50?'var(--green)':'var(--red)'}">${c.heartRate.score}</div><div class="rc-detail">${c.heartRate.current} bpm (avg ${c.heartRate.baseline})</div></div><div class="rg-comp"><div class="rc-label">Sleep</div><div class="rc-score" style="color:${c.sleep.score>=50?'var(--green)':'var(--red)'}">${c.sleep.score}</div><div class="rc-detail">${hm(c.sleep.duration)} (${c.sleep.deepPct}% deep)</div></div><div class="rg-comp"><div class="rc-label">Respiratory</div><div class="rc-score" style="color:${c.respiratory.score>=50?'var(--green)':'var(--red)'}">${c.respiratory.score}</div><div class="rc-detail">${c.respiratory.current}/min (avg ${c.respiratory.baseline})</div></div><div class="rg-comp"><div class="rc-label">Temperature</div><div class="rc-score" style="color:${c.temperature.score>=50?'var(--green)':'var(--red)'}">${c.temperature.score}</div><div class="rc-detail">${c.temperature.current}°F (avg ${c.temperature.baseline})</div></div></div></div>`;
+
+      // Sleep summary
+      const s=d.sleep;
+      const debtColor=s.debt>2?'var(--red)':s.debt>0?'var(--amber)':'var(--green)';
+      document.getElementById('brSleep').innerHTML=[
+        mCard('😴','Duration',hm(s.duration),'of '+hm(s.need)+' need','var(--cyan)'),
+        mCard('⭐','Quality Score',s.quality+'/100','last night','var(--purple)'),
+        mCard('🌊','Deep Sleep',hm(s.deep),pct(s.deep,s.duration),'var(--blue)'),
+        mCard('💭','REM Sleep',hm(s.rem),pct(s.rem,s.duration),'var(--mag)'),
+        mCard('📊','Sleep Debt',hm(s.debt),'14-day rolling',debtColor),
+      ].join('');
+
+      // 30-day sleep trend chart + stage stack + day-of-week pattern + bedtime clock
+      renderSleepTrend();
+      // 14-day recovery sparkline
+      renderRecoverySpark();
+
+      // Latest workout with inline map
+      try {
+        const dashData=await fetchJSON('/api/dashboard');
+        const lw=dashData._error?null:dashData.workouts?.[0];
+        if(lw){
+          document.getElementById('brLatestWorkout').innerHTML=wCard(lw);
+          // Load route map inline
+          if(lw.id&&!lw.isIndoor&&typeof L!=='undefined'){
+            const rd=await fetchJSON(`/api/route?id=${encodeURIComponent(lw.id)}`);
+            if(!rd._error&&rd.hasRoute&&rd.route?.length>0){
+              const mapDiv=document.getElementById('brWorkoutMap');
+              mapDiv.style.display='block';
+              const mapEl=document.getElementById('brRouteMap');
+              if(window._brMap){window._brMap.remove();window._brMap=null;}
+              const m=L.map(mapEl,{zoomControl:true,attributionControl:false}).setView([rd.route[0].lat,rd.route[0].lon],15);
+              L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(m);
+              const latlngs=rd.route.map(p=>[p.lat,p.lon]);
+              L.polyline(latlngs,{color:'#00e8ff',weight:4,opacity:0.8}).addTo(m);
+              L.circleMarker(latlngs[0],{radius:7,color:'#00ff88',fillColor:'#00ff88',fillOpacity:1}).addTo(m).bindPopup('Start');
+              L.circleMarker(latlngs[latlngs.length-1],{radius:7,color:'#ff00aa',fillColor:'#ff00aa',fillOpacity:1}).addTo(m).bindPopup('Finish');
+              m.fitBounds(L.polyline(latlngs).getBounds().pad(0.1));
+              setTimeout(()=>m.invalidateSize(),200);
+              window._brMap=m;
+            }
+          }
+        } else {
+          document.getElementById('brLatestWorkout').innerHTML='<div class="nd">No recent workouts</div>';
+        }
+      } catch(e){ console.error('Latest workout load failed',e); }
+
+      // Training load
+      const t=d.training;
+      const loadColor=t.loadStatus==='optimal'?'var(--green)':t.loadStatus==='pushing'?'var(--amber)':t.loadStatus==='overreaching'?'var(--red)':'var(--dim)';
+      document.getElementById('brTraining').innerHTML=[
+        mCard('⚡','Acute Load (7d)',t.acuteLoad+'h','this week',loadColor),
+        mCard('📊','Chronic Load',t.chronicLoad+'h','weekly avg','var(--cyan)'),
+        mCard('⚖️','Load Ratio',t.loadRatio,'acute ÷ chronic',loadColor),
+        mCard('🎯','Status',t.loadStatus,'training balance',loadColor),
+      ].join('');
+
+      // Anomalies
+      // Illness prediction
+      const ill=d.illness;
+      if(ill){
+        const illColor=ill.level==='high'?'var(--red)':ill.level==='moderate'?'var(--amber)':'var(--green)';
+        const illIcon=ill.level==='none'?'✅':ill.level==='moderate'?'⚠️':'🚨';
+        document.getElementById('brIllness').innerHTML=`<div class="ins" style="border-color:${illColor};background:linear-gradient(135deg,var(--card),${ill.alert?'#301515':'#151530'})"><div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.5rem"><span style="font-size:1.5rem">${illIcon}</span><div><div style="font-weight:700;font-size:.85rem;color:${illColor}">${ill.alert?'EARLY WARNING':'All Clear'} — ${ill.triggeredSignals}/3 signals</div><div style="font-size:.7rem;color:var(--dim)">${ill.message}</div></div></div><div class="grid" style="margin-top:.5rem">${ill.signals.map(s=>{const sc=s.status==='elevated'?'var(--red)':'var(--green)';return`<div class="mc" style="padding:.5rem"><div class="ic">${s.icon}</div><div class="lb">${s.name}</div><div class="vl" style="color:${sc};font-size:1.2rem">${s.current}</div><div class="ut">baseline: ${s.baseline} | threshold: ${s.threshold}</div><div style="font-size:.5rem;color:${sc};font-weight:600;margin-top:.15rem">${s.status.toUpperCase()}${s.consecutiveDays>1?' ('+s.consecutiveDays+' days)':''}</div></div>`;}).join('')}</div></div>`;
+      }
+
+      // Sleep prediction
+      const sp=d.sleepPrediction;
+      if(sp){
+        const qColor=sp.predictedQuality>=70?'var(--green)':sp.predictedQuality>=50?'var(--amber)':'var(--red)';
+        document.getElementById('brSleepPred').innerHTML=`<div class="grid">${mCard('⏱️','Predicted Duration',sp.predictedDuration+'h','tonight','var(--cyan)')}${mCard('⭐','Predicted Quality',sp.predictedQuality+'/100','tonight',qColor)}${mCard('📊','Your Average',sp.yourAverage+'h','all nights','var(--dim)')}${mCard('📅','This Day Avg',sp.dayOfWeekAverage+'h',['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date().getDay()]+'s','var(--purple)')}</div>${sp.factors.length>0?'<div style="margin-top:.5rem">'+sp.factors.map(f=>`<div style="display:flex;align-items:center;gap:.4rem;font-size:.65rem;margin-bottom:.2rem"><span style="color:${f.effect==='positive'?'var(--green)':'var(--red)'}">${f.effect==='positive'?'✅':'⚠️'}</span><span style="color:var(--dim)">${f.note}</span></div>`).join('')+'</div>':''}`;
+      }
+
+      const anomalies=d.anomalies;
+      if(anomalies.length===0){
+        document.getElementById('brAnomalies').innerHTML='<div style="background:var(--card);border:1px solid rgba(0,255,136,.2);border-radius:8px;padding:1rem;text-align:center;color:var(--green);font-size:.85rem;font-weight:600">✅ All metrics within normal range</div>';
+      } else {
+        document.getElementById('brAnomalies').innerHTML=anomalies.map(a=>{
+          const icon=a.severity==='high'?'🔴':a.severity==='medium'?'🟠':'🟡';
+          return`<div class="anomaly ${a.severity}"><div class="a-icon">${icon}</div><div><div class="a-metric">${a.metric}: ${a.current} ${a.unit}</div><div class="a-detail">${a.direction} baseline of ${a.baseline} ${a.unit} (30-day avg)</div></div><div class="a-zscore" style="color:${a.concern?'var(--red)':'var(--amber)'}">${a.zscore>0?'+':''}${a.zscore}σ</div></div>`;
+        }).join('');
+      }
+
+      // Today so far
+      const td=d.today;
+      document.getElementById('brToday').innerHTML=[
+        mCard('👟','Steps',F(td.steps),'steps','var(--green)'),
+        mCard('🔥','Calories',F(td.activeCalories),'kcal','var(--mag)'),
+        mCard('⏱️','Exercise',td.exerciseMinutes,'min','var(--amber)'),
+        mCard('🧍','Stand',td.standHours,'hrs','var(--cyan)'),
+      ].join('');
+
+      document.getElementById('upd').textContent='Last iPhone sync: '+(d.lastSync?new Date(d.lastSync).toLocaleString():'No data yet');
+
+      // Correlations & insights
+      try {
+        const ins=await fetchJSON('/api/insights');
+        if(ins._error)throw new Error(ins._error);
+
+        // Correlations
+        if(ins.correlations?.length>0){
+          document.getElementById('brCorrelations').innerHTML=ins.correlations.map(c=>{
+            const icon=c.goodOrBad==='beneficial'?'💚':c.goodOrBad==='concerning'?'⚠️':'🔗';
+            const rColor=c.goodOrBad==='beneficial'?'var(--green)':c.goodOrBad==='concerning'?'var(--red)':'var(--cyan)';
+            const strengthBar=`<div style="width:${Math.abs(c.r)*100}%;height:4px;background:${rColor};border-radius:2px;margin:.3rem 0"></div>`;
+            return`<div class="ins"><div style="display:flex;align-items:center;gap:.5rem"><span style="font-size:1.2rem">${icon}</span><div><div style="font-weight:700;font-size:.8rem">${c.x} → ${c.y}</div><div style="font-size:.65rem;color:var(--dim)">${c.note}</div></div><div style="margin-left:auto;text-align:right"><div style="color:${rColor};font-weight:800;font-size:1rem;font-family:'Space Grotesk',sans-serif">r=${c.r}</div><div style="font-size:.55rem;color:var(--dim)">${c.strength} ${c.direction} · ${c.dataPoints} days</div></div></div>${strengthBar}</div>`;
+          }).join('');
+        } else {
+          document.getElementById('brCorrelations').innerHTML='<div class="nd">Need more data for correlations (7+ days)</div>';
+        }
+
+        // Gait trends
+        if(ins.gaitTrends?.length>0){
+          document.getElementById('brGait').innerHTML=ins.gaitTrends.map(g=>{
+            const arrow=g.direction==='increasing'?'↑':'↓';
+            const color=g.concerning?'var(--red)':'var(--green)';
+            return mCard(g.concerning?'⚠️':'✅', g.metric, g.current, `${arrow} ${g.pctChangePerWeek}%/wk`, color);
+          }).join('');
+        } else {
+          document.getElementById('brGait').innerHTML='<div class="nd">No gait data</div>';
+        }
+
+        // Metric trends
+        if(ins.metricTrends?.length>0){
+          document.getElementById('brMetricTrends').innerHTML=ins.metricTrends.map(m=>{
+            const color=m.concerning?'var(--red)':'var(--green)';
+            return mCard(m.trend==='↑'?'📈':'📉', m.metric, m.current, `${m.trend} ${m.slopePerMonth}/mo`, color);
+          }).join('');
+        } else {
+          document.getElementById('brMetricTrends').innerHTML='<div class="nd">Not enough data for trend analysis</div>';
+        }
+      } catch(e){ console.error('Insights load failed',e); }
+
+      // VO2, Cardiac Recovery, Environmental Audio (from briefing data)
+      if(d.vo2?.current>0||d.cardioRecovery?.current>0||d.envAudio?.todayAvg>0){
+        const v=d.vo2, cr=d.cardioRecovery, ea=d.envAudio;
+        let extra='';
+        if(v?.current>0){
+          const ageColor=v.fitnessAge<45?'var(--green)':v.fitnessAge<55?'var(--amber)':'var(--red)';
+          const trendIcon=v.trend==='improving'?'📈':v.trend==='declining'?'📉':'➡️';
+          extra+=`<div class="sh"><div class="sh-icon" style="background:rgba(0,255,136,.1)">🫀</div><div class="sh-text" style="color:var(--green)">Cardio Fitness</div><div class="sh-line"></div></div><div class="grid">${mCard('🫁','VO2 Max',v.current,'ml/kg·min','var(--green)')}${mCard('🎂','Fitness Age',v.fitnessAge,'years old',ageColor)}${mCard(trendIcon,'VO2 Trend',v.slopePerMonth,'/month '+v.trend,v.trend==='improving'?'var(--green)':'var(--amber)')}</div>`;
+        }
+        if(cr?.current>0){
+          const gradeColor=cr.grade==='excellent'?'var(--green)':cr.grade==='good'?'var(--cyan)':cr.grade==='fair'?'var(--amber)':'var(--red)';
+          extra+=`<div class="sh"><div class="sh-icon" style="background:rgba(0,232,255,.1)">💓</div><div class="sh-text" style="color:var(--cyan)">Cardiac Recovery</div><div class="sh-line"></div></div><div class="grid">${mCard('💓','Recovery Rate',cr.current,'bpm/min drop',gradeColor)}${mCard('⭐','Grade',cr.grade,'post-exercise',gradeColor)}${mCard('📊','Baseline',cr.baseline,'30-day avg','var(--dim)')}</div>`;
+        }
+        if(ea?.todayAvg>0){
+          const safeColor=ea.safe?'var(--green)':'var(--red)';
+          extra+=`<div class="sh"><div class="sh-icon" style="background:rgba(255,170,0,.1)">🔊</div><div class="sh-text" style="color:var(--amber)">Environmental Audio</div><div class="sh-line"></div></div><div class="grid">${mCard('🔊','Today Avg',ea.todayAvg+'dB','exposure',safeColor)}${mCard('📢','Today Peak',ea.todayMax+'dB','maximum',ea.todayMax>85?'var(--red)':'var(--amber)')}${mCard(ea.safe?'✅':'⚠️','Status',ea.safe?'Safe':'Elevated','WHO: <70dB',safeColor)}</div>`;
+        }
+        document.getElementById('brMetricTrends').insertAdjacentHTML('afterend',extra);
+      }
+    }
+
+    // ─── ROUTE MAP ───
+    let leafletMap=null;
+    async function showRoute(workoutId,workoutName){
+      if(typeof L==='undefined'){alert('Map library still loading. Try again in a moment.');return;}
+      window._mapOpenerEl=document.activeElement; // restore focus on close
+      try{
+      const d=await fetchJSON(`/api/route?id=${encodeURIComponent(workoutId)}`);
+      if(d._error){alert('Route API error: '+d._error);return;}
+      if(!d.hasRoute||!d.route||d.route.length===0){alert('No GPS route data for this workout');return;}
+
+      const mm=document.getElementById('mapModal');
+      mm.classList.add('show');mm.setAttribute('aria-hidden','false');
+      document.querySelector('.map-close')?.focus();
+      document.getElementById('mapTitle').textContent='🗺️ '+workoutName+' — '+D(d.workout.start);
+      document.getElementById('mapStats').innerHTML=`Duration: <b>${d.workout.duration}min</b> · Distance: <b>${d.workout.distance}mi</b> · Avg HR: <b>${d.workout.avgHR}bpm</b> · Elevation: <b>${d.workout.elevationGain}ft</b> · Strain: <b>${d.workout.strain}/21</b>`;
+
+      // Initialize or reset map
+      if(leafletMap){leafletMap.remove();leafletMap=null;}
+      leafletMap=L.map('routeMap',{zoomControl:true}).setView([d.route[0].lat,d.route[0].lon],15);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; CartoDB',maxZoom:19}).addTo(leafletMap);
+
+      // Draw route with color gradient based on altitude
+      const latlngs=d.route.map(p=>[p.lat,p.lon]);
+      const altitudes=d.route.map(p=>p.alt||0);
+      const minAlt=Math.min(...altitudes),maxAlt=Math.max(...altitudes);
+
+      // Simple colored polyline
+      L.polyline(latlngs,{color:'#00e8ff',weight:4,opacity:0.8}).addTo(leafletMap);
+
+      // Start/end markers
+      L.circleMarker(latlngs[0],{radius:8,color:'#00ff88',fillColor:'#00ff88',fillOpacity:1}).addTo(leafletMap).bindPopup('Start');
+      L.circleMarker(latlngs[latlngs.length-1],{radius:8,color:'#ff00aa',fillColor:'#ff00aa',fillOpacity:1}).addTo(leafletMap).bindPopup('Finish');
+
+      // Fit bounds
+      leafletMap.fitBounds(L.polyline(latlngs).getBounds().pad(0.1));
+
+      // Fix Leaflet rendering in hidden container
+      setTimeout(()=>leafletMap.invalidateSize(),100);
+      }catch(err){alert('Error loading map: '+err.message);console.error(err);}
+    }
+    function closeMap(){const mm=document.getElementById('mapModal');mm.classList.remove('show');mm.setAttribute('aria-hidden','true');if(leafletMap){leafletMap.remove();leafletMap=null;}if(window._mapOpenerEl){try{window._mapOpenerEl.focus()}catch{}window._mapOpenerEl=null;}}
+    // Escape closes map modal
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.getElementById('mapModal')?.classList.contains('show'))closeMap();});
+
+    loadBriefing();
+    // Polling: only refresh when the tab is visible (avoid background CPU and stale renders)
+    setInterval(()=>{
+      if(document.hidden)return;
+      const active=document.querySelector('.tab.active');
+      if(active?.dataset.tab==='briefing')loadBriefing();
+      else if(active?.dataset.tab==='today')loadToday();
+    },60000);
+    // Immediate refresh when the tab becomes visible again
+    document.addEventListener('visibilitychange',()=>{
+      if(document.hidden)return;
+      const active=document.querySelector('.tab.active');
+      if(active?.dataset.tab==='briefing')loadBriefing();
+      else if(active?.dataset.tab==='today')loadToday();
+    });
+  </script>
+</body>
+</html>

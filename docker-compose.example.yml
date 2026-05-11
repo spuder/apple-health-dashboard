@@ -1,0 +1,46 @@
+# Copy this to docker-compose.yml and customize for your environment.
+#
+# Two common setups:
+#   1) Direct port exposure — visit http://<host-ip>:8880
+#   2) Reverse proxy (Traefik / Caddy / nginx) for HTTPS — see README
+#
+# The container needs to be reachable from your iPhone so Health Auto Export
+# can POST to it. If both are on the same Wi-Fi, exposing port 8880 directly
+# is the simplest path.
+
+services:
+  health:
+    build: .
+    container_name: apple-health-dashboard
+    restart: unless-stopped
+    ports:
+      - "8880:8880"        # host_port:container_port — change host port if 8880 is taken
+    volumes:
+      - ./data:/app/data         # SQLite DB + raw JSONL backup persist here
+      - ./public:/app/public     # bind-mount HTML so frontend edits are live without rebuild
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'           # cap CPU (omit on a beefy host)
+    healthcheck:
+      test: ["CMD-SHELL", "bun -e \"fetch('http://127.0.0.1:8880/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+    # ─── Optional: Traefik labels for HTTPS routing ─────────────
+    # Uncomment and adapt if you run Traefik with a wildcard cert resolver:
+    #
+    # labels:
+    #   - "traefik.enable=true"
+    #   - "traefik.http.routers.health.rule=Host(`health.example.com`)"
+    #   - "traefik.http.routers.health.entrypoints=websecure"
+    #   - "traefik.http.routers.health.tls=true"
+    #   - "traefik.http.routers.health.tls.certresolver=letsencrypt"
+    #   - "traefik.http.services.health.loadbalancer.server.port=8880"
+    # networks:
+    #   - traefik
+    #
+    # networks:
+    #   traefik:
+    #     external: true
