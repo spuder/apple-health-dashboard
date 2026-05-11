@@ -94,6 +94,9 @@ For deeper setup (HTTPS, reverse proxy, multiple users), see **[INSTALL.md](INST
 ### Workouts — with inline GPS routes
 ![Workouts](docs/screenshots/workouts.png)
 
+### Workout route map — click any 🗺️ Map link
+![Workout map](docs/screenshots/workout-map.png)
+
 ### Calendar — click any day for full detail
 ![Calendar](docs/screenshots/calendar.png)
 
