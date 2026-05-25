@@ -10,7 +10,7 @@
 
 services:
   health:
-    build: .
+    image: ghcr.io/nixfred/apple-health-dashboard:latest
     container_name: apple-health-dashboard
     restart: unless-stopped
     ports:
